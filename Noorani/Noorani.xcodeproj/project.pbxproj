@@ -102,7 +102,6 @@
 				ADCE47B62E77A2A8004F5972 /* Sources */,
 				ADCE47B72E77A2A8004F5972 /* Frameworks */,
 				ADCE47B82E77A2A8004F5972 /* Resources */,
-				ADCE47E82E77A585004F5972 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -231,26 +230,6 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
-
-/* Begin PBXShellScriptBuildPhase section */
-		ADCE47E82E77A585004F5972 /* ShellScript */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-			);
-			outputFileListPaths = (
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\n";
-		};
-/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		ADCE47B62E77A2A8004F5972 /* Sources */ = {
@@ -413,7 +392,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Noorani/Preview Content\"";
-				DEVELOPMENT_TEAM = C857DP2XR7;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -454,7 +433,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"Noorani/Preview Content\"";
-				DEVELOPMENT_TEAM = C857DP2XR7;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
