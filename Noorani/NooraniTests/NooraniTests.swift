@@ -6,12 +6,13 @@
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
-import Testing
+import XCTest
 
-struct NooraniTests {
+class NooraniTests: XCTestCase {
 
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+    func testExample() throws {
+        // Write your test here and use APIs like `XCTAssert(...)` to check expected conditions.
+        XCTAssertTrue(true, "This is a basic test that should pass")
     }
 
 }

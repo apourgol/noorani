@@ -52,10 +52,8 @@ struct ContentView: View {
                 }
                 
                 Tab("Settings", systemImage: "gearshape") {
-                    VStack {
-                        Text("Settings View")
-                    }
-                    .tag(3)
+                    SettingsView(prayerFetcher: fetcher)
+                        .tag(3)
                 }
             }
             .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets
@@ -100,7 +98,7 @@ struct ContentView: View {
                 .tag(2)
 
                 VStack {
-                    Text("Settings View")
+                    SettingsView(prayerFetcher: fetcher)
                 }
                 .tabItem {
                     Label("Settings", systemImage: "gearshape")
