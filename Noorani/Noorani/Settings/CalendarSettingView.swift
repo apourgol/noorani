@@ -37,7 +37,8 @@ struct CalendarSettingView: View {
                     }
                     
                     Text("Calendar Setting")
-                        .font(.custom("Nunito-Bold", size: 24))
+                        .font(.custom("Nunito-Regular", size: 24))
+                        .fontWeight(.bold)
                         .foregroundColor(.black)
                         .padding(.leading, 10)
                     

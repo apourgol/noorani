@@ -10,7 +10,7 @@ import SwiftUI
 
 struct TopSectionView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @StateObject private var locationManager = LocationManager()
+    @ObservedObject var locationManager: LocationManager
     @State private var showLocationMenu = false
     @AppStorage("currentCity") private var currentCity = ""
     
@@ -27,6 +27,19 @@ struct TopSectionView: View {
         outputFormatter.dateStyle = .long
 
         return outputFormatter.string(from: parsedDate)
+    }
+    
+    private func getNextEventLabel(_ eventName: String) -> String {
+        let prayerNames = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
+        let nonPrayerEvents = ["Sunrise", "Sunset", "Midnight"]
+        
+        if prayerNames.contains(eventName) {
+            return "Next Prayer"
+        } else if nonPrayerEvents.contains(eventName) {
+            return "Next Event"
+        } else {
+            return "Next Prayer" // Default fallback
+        }
     }
 
     
@@ -58,11 +71,11 @@ struct TopSectionView: View {
                             if locationManager.isLoading {
                                 ProgressView()
                                     .scaleEffect(0.8)
-                                    .foregroundColor(Color(hex: "#fab555"))
+                                    .foregroundColor(.nooraniPrimary)
                             } else {
                                 Image(systemName: "location.fill")
                                     .font(.system(size: 14))
-                                    .foregroundColor(Color(hex: "#fab555"))
+                                    .foregroundColor(.nooraniPrimary)
                             }
                             
                             Text(currentCity)
@@ -85,14 +98,15 @@ struct TopSectionView: View {
                 // Prayer information - reduced spacing between Next Prayer and Dhuhr
                 HStack(alignment: .lastTextBaseline) {
                     VStack(alignment: .leading, spacing: 2) { // Reduced from 4 to 2
-                        Text("Next Prayer")
+                        // Show "Next Prayer" or "Next Event" based on what's next
+                        Text(getNextEventLabel(prayerFetcher.nextPrayerName))
                             .font(.custom("Nunito-Regular", size: 16))
-                            .foregroundColor(.black.opacity(0.7))
+                            .foregroundColor(.nooraniTextSecondary)
                         
                         // TODO: update this to be correct prayer
                         Text(prayerFetcher.nextPrayerName)
                             .font(.custom("Nunito-SemiBold", size: 48))
-                            .foregroundColor(.black)
+                            .foregroundColor(.nooraniTextPrimary)
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
                     }
@@ -102,7 +116,7 @@ struct TopSectionView: View {
                     // TODO: IMPLEMENT COUNTDOWN HERE FOR NEXT PRAYER OR SUNRISE/SUNSET
                     Text(prayerFetcher.countdown)
                         .font(.custom("Nunito-Regular", size: 32))
-                        .foregroundColor(.black)
+                        .foregroundColor(.nooraniTextPrimary)
                         .lineLimit(1)
                         .minimumScaleFactor(0.5)
                 }
@@ -113,39 +127,14 @@ struct TopSectionView: View {
             HStack {
                 Text(formatDateFromAdhanAPI(date: prayerFetcher.readableDate))
                     .font(.custom("Nunito-Regular", size: 18))
-                    .foregroundColor(.black.opacity(0.8))
+                    .foregroundColor(.nooraniTextSecondary)
             }
         }
     }
 }
 
-// Extension for hex color support
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
-        }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
-    }
-}
+
 
 #Preview {
-    TopSectionView(prayerFetcher: PrayerTimesFetcher())
+    TopSectionView(prayerFetcher: PrayerTimesFetcher(), locationManager: LocationManager())
 }

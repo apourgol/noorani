@@ -10,196 +10,201 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @State private var navigationPath = NavigationPath()
-    
-    // AppStorage properties for reset functionality
-    @AppStorage("calculationMethod") private var calculationMethod: Int = 7
-    @AppStorage("calendarType") private var calendarType: String = "both"
-    @AppStorage("hijriOffset") private var hijriOffset: Int = 0
-    @AppStorage("madhab") private var madhab: String = "shia"
-    @AppStorage("timeFormat") private var timeFormat: String = "12"
-    @AppStorage("locationAutoUpdate") private var locationAutoUpdate: Bool = true
-    
-    private func resetAllSettings() {
-        calculationMethod = 7
-        calendarType = "both"
-        hijriOffset = 0
-        madhab = "shia"
-        timeFormat = "12"
-        locationAutoUpdate = true
-        
-        // You might want to add additional reset logic here
-        // such as clearing notification settings, etc.
-    }
-    
+    @State private var showingCalculationView = false
+    @State private var showingCalendarView = false
+    @State private var showingNotificationsView = false
+    @State private var showingAboutView = false
+    @State private var showingResetAlert = false
+
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        NavigationView {
             ZStack {
+                // Same gradient as home screen
                 LinearGradient(
-                    gradient: Gradient(stops: [
-                        .init(color: Color(hex: "#fab555"), location: 0.0),
-                        .init(color: Color(hex: "#feecd3"), location: 0.45),
-                        .init(color: Color.white.opacity(0.95), location: 0.75),
-                        .init(color: Color.white, location: 1.0)
-                    ]),
+                    colors: [
+                        Color(hex: "#fab555"),
+                        Color(hex: "#feecd3"),
+                        Color.white
+                    ],
                     startPoint: .top,
                     endPoint: .bottom
                 )
                 .ignoresSafeArea(.all, edges: .vertical)
-                
+
                 VStack(alignment: .leading, spacing: 0) {
-                    VStack(alignment: .leading, spacing: 20) {
+                    // Header
+                    HStack {
                         Text("Settings")
-                            .font(.custom("Nunito-Regular", size: 36))
+                            .font(.custom("Nunito-Regular", size: 32))
                             .fontWeight(.bold)
                             .foregroundColor(.black)
-                            .padding(.leading, 0)
+
+                        Spacer()
                     }
-                    .padding(.horizontal, 25)
-                    .padding(.top, 60) // More top padding for main settings
-                    
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+
                     ScrollView {
-                        VStack(spacing: 30) {
+                        VStack(spacing: 0) {
+                            // Settings Container
                             VStack(spacing: 0) {
-                                MainSettingsRow(
+                                // Prayer Time Calculation
+                                SettingsRow(
                                     title: "Prayer Time Calculation",
-                                    subtitle: "Choose calculation method",
-                                    isFirst: true
-                                ) {
-                                    navigationPath.append("PrayerTimeCalculation")
-                                }
+                                    subtitle: "Choose method, time format & optional prayers",
+                                    showChevron: true,
+                                    action: {
+                                        showingCalculationView = true
+                                    }
+                                )
                                 
-                                MainSettingsDivider()
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
                                 
                                 // Calendar Setting
-                                MainSettingsRow(
+                                SettingsRow(
                                     title: "Calendar Setting",
-                                    subtitle: "Hijri and Gregorian options"
-                                ) {
-                                    navigationPath.append("CalendarSetting")
-                                }
+                                    subtitle: "Hijri and Gregorian options",
+                                    showChevron: true,
+                                    action: {
+                                        showingCalendarView = true
+                                    }
+                                )
                                 
-                                MainSettingsDivider()
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
                                 
                                 // Notifications
-                                MainSettingsRow(
+                                SettingsRow(
                                     title: "Notifications",
-                                    subtitle: "Customize prayer time alerts"
-                                ) {
-                                    navigationPath.append("Notifications")
-                                }
+                                    subtitle: "Customize prayer time alerts",
+                                    showChevron: true,
+                                    action: {
+                                        showingNotificationsView = true
+                                    }
+                                )
                                 
-                                MainSettingsDivider()
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
                                 
                                 // About
-                                MainSettingsRow(
+                                SettingsRow(
                                     title: "About",
-                                    subtitle: "App info and support"
-                                ) {
-                                    navigationPath.append("About")
-                                }
+                                    subtitle: "App info and support",
+                                    showChevron: true,
+                                    action: {
+                                        showingAboutView = true
+                                    }
+                                )
                                 
-                                MainSettingsDivider()
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
                                 
                                 // Reset to Default Settings
-                                MainSettingsRow(
+                                SettingsRow(
                                     title: "Reset to Default Settings",
                                     subtitle: "Restore all settings to default",
-                                    isLast: true,
-                                    isDestructive: true
-                                ) {
-                                    resetAllSettings()
-                                }
+                                    showChevron: false,
+                                    isDestructive: true,
+                                    action: {
+                                        showingResetAlert = true
+                                    }
+                                )
                             }
                             .background(
-                                RoundedRectangle(cornerRadius: 20)
+                                RoundedRectangle(cornerRadius: 16)
                                     .fill(Color.white)
-                                    .shadow(color: Color.black.opacity(0.08), radius: 20, x: 0, y: 8)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
                             )
                             .padding(.horizontal, 20)
-                            .padding(.top, 35)
+                            .padding(.top, 30)
                         }
                     }
-                    
-                    Spacer(minLength: 100) // Extra space at bottom
-                }
-            }
-            .navigationDestination(for: String.self) { destination in
-                switch destination {
-                case "PrayerTimeCalculation":
-                    PrayerTimeCalculationView(prayerFetcher: prayerFetcher)
-                case "CalendarSetting":
-                    CalendarSettingView()
-                case "Notifications":
-                    NotificationsView()
-                case "About":
-                    AboutView()
-                default:
-                    EmptyView()
+
+                    Spacer()
                 }
             }
         }
+        .navigationBarHidden(true)
+        .sheet(isPresented: $showingCalculationView) {
+            PrayerTimeCalculationView(prayerFetcher: prayerFetcher)
+        }
+        .sheet(isPresented: $showingCalendarView) {
+            CalendarSettingView()
+        }
+        .sheet(isPresented: $showingNotificationsView) {
+            NotificationsView()
+        }
+        .sheet(isPresented: $showingAboutView) {
+            AboutView()
+        }
+        .alert("Reset Settings", isPresented: $showingResetAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Reset", role: .destructive) {
+                resetToDefaultSettings()
+            }
+        } message: {
+            Text("Are you sure you want to reset all settings to their default values? This action cannot be undone.")
+        }
+    }
+    
+    private func resetToDefaultSettings() {
+        // Reset all UserDefaults/AppStorage values to defaults
+        UserDefaults.standard.removeObject(forKey: "timeFormat")
+        UserDefaults.standard.removeObject(forKey: "selectedCalculationMethod")
+        UserDefaults.standard.removeObject(forKey: "notificationsEnabled")
+        UserDefaults.standard.removeObject(forKey: "calendarType")
+        UserDefaults.standard.removeObject(forKey: "currentCity")
+        // Add other settings keys as needed
+        
+        // Notify prayer fetcher to reset to defaults
+        prayerFetcher.resetToDefaults()
     }
 }
 
-// Beautiful Main Settings Row Component - with Button for proper text colors
-struct MainSettingsRow: View {
+struct SettingsRow: View {
     let title: String
     let subtitle: String
-    let isFirst: Bool
-    let isLast: Bool
-    let isDestructive: Bool
+    let showChevron: Bool
+    var isDestructive: Bool = false
     let action: () -> Void
-    
-    init(title: String, subtitle: String, isFirst: Bool = false, isLast: Bool = false, isDestructive: Bool = false, action: @escaping () -> Void) {
-        self.title = title
-        self.subtitle = subtitle
-        self.isFirst = isFirst
-        self.isLast = isLast
-        self.isDestructive = isDestructive
-        self.action = action
-    }
-    
+
     var body: some View {
         Button(action: action) {
-            HStack {
+            HStack(spacing: 16) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(title)
                         .font(.custom("Nunito-Regular", size: 17))
-                        .fontWeight(.medium)
-                        .foregroundColor(isDestructive ? .red : .black) // Red for destructive actions
-                    
+                        .fontWeight(.regular)
+                        .foregroundColor(isDestructive ? .red : .black)
+                        .multilineTextAlignment(.leading)
+
                     Text(subtitle)
                         .font(.custom("Nunito-Regular", size: 15))
-                        .fontWeight(.regular)
-                        .foregroundColor(.black.opacity(0.6))
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.leading)
                 }
-                
+
                 Spacer()
-                
-                Image(systemName: isDestructive ? "exclamationmark.triangle" : "chevron.right")
-                    .foregroundColor(isDestructive ? .red : Color(hex: "#fab555")) // Red icon for destructive actions
-                    .font(.system(size: 14, weight: .semibold))
+
+                if showChevron {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(Color.orange.opacity(0.8))
+                } else if isDestructive {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.red.opacity(0.7))
+                }
             }
             .padding(.horizontal, 20)
-            .padding(.vertical, 18)
-            .contentShape(Rectangle()) // Makes entire row tappable
+            .padding(.vertical, 20)
+            .contentShape(Rectangle())
         }
-        .buttonStyle(PlainButtonStyle()) // Removes button styling
-    }
-}
-
-// Beautiful Divider Component - matching MoreSettings style
-struct MainSettingsDivider: View {
-    var body: some View {
-        Divider()
-            .background(Color.gray.opacity(0.15))
-            .padding(.leading, 20)
+        .buttonStyle(PlainButtonStyle())
     }
 }
 
 #Preview {
-    NavigationView {
-        SettingsView(prayerFetcher: PrayerTimesFetcher())
-    }
+    SettingsView(prayerFetcher: PrayerTimesFetcher())
 }

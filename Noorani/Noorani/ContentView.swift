@@ -10,6 +10,7 @@ import SwiftUI
 
 struct ContentView: View {
     @StateObject var fetcher = PrayerTimesFetcher()
+    @StateObject private var locationManager = LocationManager()
     @State private var selectedTab = 0
     
     var body: some View {
@@ -30,7 +31,7 @@ struct ContentView: View {
                         .ignoresSafeArea(.all, edges: .vertical)
                         
                         VStack {
-                            TopSectionView(prayerFetcher: fetcher)
+                            TopSectionView(prayerFetcher: fetcher, locationManager: locationManager)
                             AzanTimesView(fetcher: fetcher)
                         }
                     }
@@ -57,6 +58,15 @@ struct ContentView: View {
                 }
             }
             .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets
+            .onAppear {
+                // Automatically request location and fetch prayer times on app startup
+                requestLocationAndFetchPrayers()
+            }
+            .onChange(of: locationManager.latitude) { _, newLat in
+                if let lat = newLat, let lng = locationManager.longitude {
+                    fetcher.fetchPrayerTimes(latitude: lat, longitude: lng)
+                }
+            }
         } else {
             TabView(selection: $selectedTab) {
                 ZStack(alignment: .top) {
@@ -72,7 +82,7 @@ struct ContentView: View {
                     .ignoresSafeArea(.all, edges: .vertical)
 
                     VStack {
-                        TopSectionView(prayerFetcher: fetcher)
+                        TopSectionView(prayerFetcher: fetcher, locationManager: locationManager)
                         AzanTimesView(fetcher: fetcher)
                     }
                 }
@@ -106,6 +116,28 @@ struct ContentView: View {
                 .tag(3)
             }
             .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets
+            .onAppear {
+                // Automatically request location and fetch prayer times on app startup
+                requestLocationAndFetchPrayers()
+            }
+            .onChange(of: locationManager.latitude) { _, newLat in
+                if let lat = newLat, let lng = locationManager.longitude {
+                    fetcher.fetchPrayerTimes(latitude: lat, longitude: lng)
+                }
+            }
+        }
+    }
+    
+    private func requestLocationAndFetchPrayers() {
+        // Check if we already have stored coordinates
+        if fetcher.currentLat != 0.0 && fetcher.currentLng != 0.0 {
+            // We have cached coordinates, use them to fetch prayer times
+            fetcher.fetchPrayerTimes(latitude: fetcher.currentLat, longitude: fetcher.currentLng)
+        } else {
+            // No cached coordinates, request location
+            locationManager.requestLocation {
+                // Location will be handled by the onChange modifier above
+            }
         }
     }
 }

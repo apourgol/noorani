@@ -8,20 +8,22 @@
 
 import SwiftUI
 
+// MARK: - Views
+
 struct PrayerTimeCalculationView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
     @AppStorage("timeFormat") private var timeFormat: String = "12" // "12" or "24"
     @Environment(\.dismiss) private var dismiss
-    
+
     var body: some View {
         ZStack {
             // Same gradient as home screen
             LinearGradient(
-                gradient: Gradient(stops: [
-                    .init(color: Color(hex: "#fab555"), location: 0.0),
-                    .init(color: Color(hex: "#feecd3"), location: 0.55),
-                    .init(color: Color.white, location: 1.0)
-                ]),
+                colors: [
+                    Color(hex: "#fab555"),
+                    Color(hex: "#feecd3"), 
+                    Color.white
+                ],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -35,101 +37,29 @@ struct PrayerTimeCalculationView: View {
                             .foregroundColor(.white)
                             .font(.system(size: 18, weight: .medium))
                     }
-                    
+
                     Text("Prayer Time Calculation")
                         .font(.custom("Nunito-Regular", size: 24))
                         .fontWeight(.bold)
                         .foregroundColor(.black)
                         .padding(.leading, 10)
-                    
+
                     Spacer()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                
+
                 // Method selection list
                 ScrollView {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Current Selection Summary
-                        if let selectedMethod = prayerFetcher.selectedMethod {
-                            VStack(alignment: .leading, spacing: 10) {
-                                Text("Current Method")
-                                    .font(.custom("Nunito-Regular", size: 18))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.black.opacity(0.8))
-                                    .padding(.horizontal, 20)
-                                
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(selectedMethod.name)
-                                                .font(.custom("Nunito-Regular", size: 16))
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.black)
-                                            
-                                            if let params = selectedMethod.params {
-                                                VStack(alignment: .leading, spacing: 2) {
-                                                    if let fajr = params.Fajr {
-                                                        Text("Fajr: \(fajr, specifier: "%.1f")°")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                    
-                                                    if let isha = params.Isha {
-                                                        Text("Isha: \(isha.displayValue)")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                    
-                                                    if let maghrib = params.Maghrib {
-                                                        Text("Maghrib: \(maghribDisplayValue(maghrib))")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                    
-                                                    if let midnight = params.Midnight {
-                                                        Text("Midnight: \(midnight)")
-                                                            .font(.caption)
-                                                            .foregroundColor(.secondary)
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(Color(hex: "#fab555"))
-                                            .font(.title2)
-                                    }
-                                    .padding(.horizontal, 20)
-                                    .padding(.vertical, 16)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 12)
-                                            .fill(Color.white.opacity(0.8))
-                                            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
-                                    )
-                                }
-                                .padding(.horizontal, 20)
-                            }
-                        }
-                        
-                        // All Available Methods Section
+                        // Calculation Methods Section
                         VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text("All Calculation Methods")
-                                    .font(.custom("Nunito-Regular", size: 18))
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.black.opacity(0.8))
-                                
-                                Spacer()
-                                
-                                Text("\(prayerFetcher.availableMethods.count) available")
-                                    .font(.custom("Nunito-Regular", size: 14))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 20)
-                            
+                            Text("Calculation Methods")
+                                .font(.custom("Nunito-Regular", size: 18))
+                                .fontWeight(.semibold)
+                                .foregroundColor(.black.opacity(0.8))
+                                .padding(.horizontal, 20)
+
                             VStack(spacing: 1) {
                                 ForEach(prayerFetcher.availableMethods) { method in
                                     EnhancedCalculationMethodRow(
@@ -138,7 +68,7 @@ struct PrayerTimeCalculationView: View {
                                     ) {
                                         prayerFetcher.selectMethod(method)
                                     }
-                                    
+
                                     if method.id != prayerFetcher.availableMethods.last?.id {
                                         Divider()
                                             .background(Color.gray.opacity(0.15))
@@ -153,7 +83,7 @@ struct PrayerTimeCalculationView: View {
                             )
                             .padding(.horizontal, 20)
                         }
-                        
+
                         // Time Format Section
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Time Format")
@@ -161,7 +91,7 @@ struct PrayerTimeCalculationView: View {
                                 .fontWeight(.semibold)
                                 .foregroundColor(.black.opacity(0.8))
                                 .padding(.horizontal, 20)
-                            
+
                             VStack(spacing: 1) {
                                 TimeFormatRow(
                                     title: "12 Hour (AM/PM)",
@@ -170,11 +100,11 @@ struct PrayerTimeCalculationView: View {
                                 ) {
                                     timeFormat = "12"
                                 }
-                                
+
                                 Divider()
                                     .background(Color.gray.opacity(0.15))
                                     .padding(.leading, 20)
-                                
+
                                 TimeFormatRow(
                                     title: "24 Hour",
                                     format: "24",
@@ -190,10 +120,35 @@ struct PrayerTimeCalculationView: View {
                             )
                             .padding(.horizontal, 20)
                         }
+
+                        // Prayer Visibility Section
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Optional Prayer Times")
+                                .font(.custom("Nunito-Regular", size: 18))
+                                .fontWeight(.semibold)
+                                .foregroundColor(.black.opacity(0.8))
+                                .padding(.horizontal, 20)
+
+                            VStack(spacing: 1) {
+                                PrayerToggleRow(title: "Asr", isOn: $prayerFetcher.showAsr)
+                                Divider().background(Color.gray.opacity(0.15)).padding(.leading, 20)
+                                
+                                PrayerToggleRow(title: "Isha", isOn: $prayerFetcher.showIsha)
+                                Divider().background(Color.gray.opacity(0.15)).padding(.leading, 20)
+                                
+                                PrayerToggleRow(title: "Midnight", isOn: $prayerFetcher.showMidnight)
+                            }
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color.white)
+                                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 4)
+                            )
+                            .padding(.horizontal, 20)
+                        }
                     }
                     .padding(.top, 20)
                 }
-                
+
                 Spacer()
             }
         }
@@ -208,22 +163,13 @@ struct PrayerTimeCalculationView: View {
                 }
         )
     }
-    
-    private func maghribDisplayValue(_ maghrib: MethodParams.MaghribParam) -> String {
-        switch maghrib {
-        case .degrees(let degrees):
-            return "\(degrees)°"
-        case .minutes(let minutes):
-            return minutes
-        }
-    }
 }
 
 struct EnhancedCalculationMethodRow: View {
     let method: CalculationMethod
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -233,46 +179,10 @@ struct EnhancedCalculationMethodRow: View {
                         .fontWeight(.medium)
                         .foregroundColor(.black)
                         .multilineTextAlignment(.leading)
-                    
-                    if let params = method.params {
-                        VStack(alignment: .leading, spacing: 2) {
-                            HStack(spacing: 12) {
-                                if let fajr = params.Fajr {
-                                    Text("Fajr: \(fajr, specifier: "%.1f")°")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                if let isha = params.Isha {
-                                    Text("Isha: \(isha.displayValue)")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                            
-                            if let maghrib = params.Maghrib {
-                                Text("Maghrib: \(maghribDisplayValue(maghrib))")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                            }
-                            
-                            if let midnight = params.Midnight {
-                                Text("Midnight: \(midnight)")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                    }
-                    
-                    if let location = method.location {
-                        Text("Reference: \(location.latitude, specifier: "%.2f"), \(location.longitude, specifier: "%.2f")")
-                            .font(.system(size: 11))
-                            .foregroundColor(.secondary)
-                    }
                 }
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Color(hex: "#fab555"))
@@ -289,15 +199,6 @@ struct EnhancedCalculationMethodRow: View {
         }
         .buttonStyle(PlainButtonStyle())
     }
-    
-    private func maghribDisplayValue(_ maghrib: MethodParams.MaghribParam) -> String {
-        switch maghrib {
-        case .degrees(let degrees):
-            return "\(degrees)°"
-        case .minutes(let minutes):
-            return minutes
-        }
-    }
 }
 
 struct CalculationMethodRow: View {
@@ -305,7 +206,7 @@ struct CalculationMethodRow: View {
     let methodName: String
     let isSelected: Bool
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
@@ -315,9 +216,9 @@ struct CalculationMethodRow: View {
                         .foregroundColor(.black)
                         .multilineTextAlignment(.leading)
                 }
-                
+
                 Spacer()
-                
+
                 if isSelected {
                     Image(systemName: "checkmark")
                         .foregroundColor(Color(hex: "#fab555"))
@@ -336,16 +237,16 @@ struct TimeFormatRow: View {
     let format: String
     let currentFormat: String
     let onTap: () -> Void
-    
+
     var body: some View {
         Button(action: onTap) {
             HStack {
                 Text(title)
                     .font(.custom("Nunito-Regular", size: 16))
                     .foregroundColor(.black)
-                
+
                 Spacer()
-                
+
                 if currentFormat == format {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(Color(hex: "#fab555"))
@@ -364,6 +265,27 @@ struct TimeFormatRow: View {
     }
 }
 
+struct PrayerToggleRow: View {
+    let title: String
+    @Binding var isOn: Bool
+    
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.custom("Nunito-Regular", size: 16))
+                .foregroundColor(.black)
+            
+            Spacer()
+            
+            Toggle("", isOn: $isOn)
+                .tint(Color(hex: "#fab555"))
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 16)
+    }
+}
+
 #Preview {
     PrayerTimeCalculationView(prayerFetcher: PrayerTimesFetcher())
 }
+
