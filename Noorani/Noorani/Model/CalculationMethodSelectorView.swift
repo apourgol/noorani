@@ -41,7 +41,7 @@ struct CalculationMethodSelectorView: View {
 }
 
 struct MethodRow: View {
-    let method: CalculationMethod
+    let method: PrayerCalculationMethod
     let isSelected: Bool
     let onTap: () -> Void
     
@@ -101,7 +101,7 @@ struct MethodRow: View {
         }
     }
     
-    private func maghribDisplayValue(_ maghrib: MethodParams.MaghribParam) -> String {
+    private func maghribDisplayValue(_ maghrib: PrayerMethodParams.MaghribParam) -> String {
         switch maghrib {
         case .degrees(let degrees):
             return "\(degrees)°"

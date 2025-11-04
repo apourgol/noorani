@@ -11,7 +11,12 @@ import CoreLocation
 import SwiftUI
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let locationManager = CLLocationManager()
+    private lazy var locationManager: CLLocationManager = {
+        let manager = CLLocationManager()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        return manager
+    }()
     @AppStorage("currentCity") private var currentCity = ""
     @AppStorage("currentLat") private var currentLat: Double = 0
     @AppStorage("currentLng") private var currentLng: Double = 0
@@ -25,8 +30,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     override init() {
         super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        // locationManager is now lazy, so it won't be created until first accessed
     }
 
     func requestLocation(completion: @escaping () -> Void) {

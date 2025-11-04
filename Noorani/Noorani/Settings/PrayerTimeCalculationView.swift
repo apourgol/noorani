@@ -2,7 +2,6 @@
 //  PrayerTimeCalculationView.swift
 //  Noorani
 //
-//  Created by Amin Pourgol on 10/20/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
@@ -12,8 +11,14 @@ import SwiftUI
 
 struct PrayerTimeCalculationView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @AppStorage("timeFormat") private var timeFormat: String = "12" // "12" or "24"
+    @StateObject private var viewModel: PrayerTimeCalculationViewModel
     @Environment(\.dismiss) private var dismiss
+    
+    // Custom initializer for dependency injection
+    init(prayerFetcher: PrayerTimesFetcher) {
+        self.prayerFetcher = prayerFetcher
+        self._viewModel = StateObject(wrappedValue: PrayerTimeCalculationViewModel(prayerTimesFetcher: prayerFetcher))
+    }
 
     var body: some View {
         ZStack {
@@ -61,15 +66,15 @@ struct PrayerTimeCalculationView: View {
                                 .padding(.horizontal, 20)
 
                             VStack(spacing: 1) {
-                                ForEach(prayerFetcher.availableMethods) { method in
+                                ForEach(viewModel.availableMethods) { method in
                                     EnhancedCalculationMethodRow(
                                         method: method,
-                                        isSelected: prayerFetcher.selectedMethod?.id == method.id
+                                        isSelected: viewModel.selectedMethod?.id == method.id
                                     ) {
-                                        prayerFetcher.selectMethod(method)
+                                        viewModel.selectCalculationMethod(method)
                                     }
 
-                                    if method.id != prayerFetcher.availableMethods.last?.id {
+                                    if method.id != viewModel.availableMethods.last?.id {
                                         Divider()
                                             .background(Color.gray.opacity(0.15))
                                             .padding(.leading, 20)
@@ -96,9 +101,9 @@ struct PrayerTimeCalculationView: View {
                                 TimeFormatRow(
                                     title: "12 Hour (AM/PM)",
                                     format: "12",
-                                    currentFormat: timeFormat
+                                    currentFormat: viewModel.timeFormat
                                 ) {
-                                    timeFormat = "12"
+                                    viewModel.updateTimeFormat("12")
                                 }
 
                                 Divider()
@@ -108,9 +113,9 @@ struct PrayerTimeCalculationView: View {
                                 TimeFormatRow(
                                     title: "24 Hour",
                                     format: "24",
-                                    currentFormat: timeFormat
+                                    currentFormat: viewModel.timeFormat
                                 ) {
-                                    timeFormat = "24"
+                                    viewModel.updateTimeFormat("24")
                                 }
                             }
                             .background(
@@ -130,13 +135,16 @@ struct PrayerTimeCalculationView: View {
                                 .padding(.horizontal, 20)
 
                             VStack(spacing: 1) {
-                                PrayerToggleRow(title: "Asr", isOn: $prayerFetcher.showAsr)
+                                PrayerToggleRow(title: "Asr", isOn: $viewModel.showAsr, onChange: {
+                                    viewModel.updateShowAsr(viewModel.showAsr)
+                                })
                                 Divider().background(Color.gray.opacity(0.15)).padding(.leading, 20)
                                 
-                                PrayerToggleRow(title: "Isha", isOn: $prayerFetcher.showIsha)
-                                Divider().background(Color.gray.opacity(0.15)).padding(.leading, 20)
+                                PrayerToggleRow(title: "Isha", isOn: $viewModel.showIsha, onChange: {
+                                    viewModel.updateShowIsha(viewModel.showIsha)
+                                })
                                 
-                                PrayerToggleRow(title: "Midnight", isOn: $prayerFetcher.showMidnight)
+                                // Note: Midnight is always visible - no toggle needed
                             }
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
@@ -166,7 +174,7 @@ struct PrayerTimeCalculationView: View {
 }
 
 struct EnhancedCalculationMethodRow: View {
-    let method: CalculationMethod
+    let method: PrayerCalculationMethod
     let isSelected: Bool
     let onTap: () -> Void
 
@@ -268,6 +276,13 @@ struct TimeFormatRow: View {
 struct PrayerToggleRow: View {
     let title: String
     @Binding var isOn: Bool
+    let onChange: (() -> Void)?
+    
+    init(title: String, isOn: Binding<Bool>, onChange: (() -> Void)? = nil) {
+        self.title = title
+        self._isOn = isOn
+        self.onChange = onChange
+    }
     
     var body: some View {
         HStack {
@@ -279,6 +294,9 @@ struct PrayerToggleRow: View {
             
             Toggle("", isOn: $isOn)
                 .tint(Color(hex: "#fab555"))
+                .onChange(of: isOn) { _, _ in
+                    onChange?()
+                }
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)

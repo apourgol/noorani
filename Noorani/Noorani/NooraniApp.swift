@@ -12,8 +12,8 @@ import SwiftUI
 struct NooraniApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
-                .preferredColorScheme(.light) // Force light mode across the entire app
+            SplashScreenView()
+                .preferredColorScheme(.light) // dark mode support 2.0
         }
     }
 }

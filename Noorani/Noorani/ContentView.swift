@@ -11,7 +11,20 @@ import SwiftUI
 struct ContentView: View {
     @StateObject var fetcher = PrayerTimesFetcher()
     @StateObject private var locationManager = LocationManager()
-    @State private var selectedTab = 0
+    @StateObject private var viewModel: ContentViewModel
+    
+    // Custom initializer
+    init() {
+        let fetcher = PrayerTimesFetcher()
+        let locationManager = LocationManager()
+        
+        self._fetcher = StateObject(wrappedValue: fetcher)
+        self._locationManager = StateObject(wrappedValue: locationManager)
+        self._viewModel = StateObject(wrappedValue: ContentViewModel(
+            prayerTimesFetcher: fetcher,
+            locationManager: locationManager
+        ))
+    }
     
     var body: some View {
         if #available(iOS 18.0, *) {
@@ -59,16 +72,20 @@ struct ContentView: View {
             }
             .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets
             .onAppear {
-                // Automatically request location and fetch prayer times on app startup
-                requestLocationAndFetchPrayers()
+                // The ViewModel handles this automatically now
             }
             .onChange(of: locationManager.latitude) { _, newLat in
-                if let lat = newLat, let lng = locationManager.longitude {
-                    fetcher.fetchPrayerTimes(latitude: lat, longitude: lng)
+                if let newLat = newLat {
+                    viewModel.handleLocationChange(latitude: newLat, longitude: locationManager.longitude)
+                }
+            }
+            .onChange(of: locationManager.longitude) { _, newLng in
+                if let newLng = newLng {
+                    viewModel.handleLocationChange(latitude: locationManager.latitude, longitude: newLng)
                 }
             }
         } else {
-            TabView(selection: $selectedTab) {
+            TabView(selection: $viewModel.selectedTab) {
                 ZStack(alignment: .top) {
                     LinearGradient(
                         gradient: Gradient(stops: [
@@ -117,26 +134,17 @@ struct ContentView: View {
             }
             .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets
             .onAppear {
-                // Automatically request location and fetch prayer times on app startup
-                requestLocationAndFetchPrayers()
+                // The ViewModel handles this automatically now
             }
             .onChange(of: locationManager.latitude) { _, newLat in
-                if let lat = newLat, let lng = locationManager.longitude {
-                    fetcher.fetchPrayerTimes(latitude: lat, longitude: lng)
+                if let newLat = newLat {
+                    viewModel.handleLocationChange(latitude: newLat, longitude: locationManager.longitude)
                 }
             }
-        }
-    }
-    
-    private func requestLocationAndFetchPrayers() {
-        // Check if we already have stored coordinates
-        if fetcher.currentLat != 0.0 && fetcher.currentLng != 0.0 {
-            // We have cached coordinates, use them to fetch prayer times
-            fetcher.fetchPrayerTimes(latitude: fetcher.currentLat, longitude: fetcher.currentLng)
-        } else {
-            // No cached coordinates, request location
-            locationManager.requestLocation {
-                // Location will be handled by the onChange modifier above
+            .onChange(of: locationManager.longitude) { _, newLng in
+                if let newLng = newLng {
+                    viewModel.handleLocationChange(latitude: locationManager.latitude, longitude: newLng)
+                }
             }
         }
     }

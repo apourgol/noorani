@@ -2,7 +2,6 @@
 //  SettingsView.swift
 //  Noorani
 //
-//  Created by Amin Pourgol on 10/20/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
@@ -10,11 +9,13 @@ import SwiftUI
 
 struct SettingsView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @State private var showingCalculationView = false
-    @State private var showingCalendarView = false
-    @State private var showingNotificationsView = false
-    @State private var showingAboutView = false
-    @State private var showingResetAlert = false
+    @StateObject private var viewModel: SettingsViewModel
+    
+    // Custom initializer for dependency injection
+    init(prayerFetcher: PrayerTimesFetcher) {
+        self.prayerFetcher = prayerFetcher
+        self._viewModel = StateObject(wrappedValue: SettingsViewModel(prayerTimesFetcher: prayerFetcher))
+    }
 
     var body: some View {
         NavigationView {
@@ -22,8 +23,8 @@ struct SettingsView: View {
                 // Same gradient as home screen
                 LinearGradient(
                     colors: [
-                        Color(hex: "#fab555"),
-                        Color(hex: "#feecd3"),
+                        Color.nooraniPrimary,
+                        Color.nooraniSecondary,
                         Color.white
                     ],
                     startPoint: .top,
@@ -53,9 +54,7 @@ struct SettingsView: View {
                                     title: "Prayer Time Calculation",
                                     subtitle: "Choose method, time format & optional prayers",
                                     showChevron: true,
-                                    action: {
-                                        showingCalculationView = true
-                                    }
+                                    action: viewModel.showCalculationView
                                 )
                                 
                                 Divider()
@@ -66,9 +65,7 @@ struct SettingsView: View {
                                     title: "Calendar Setting",
                                     subtitle: "Hijri and Gregorian options",
                                     showChevron: true,
-                                    action: {
-                                        showingCalendarView = true
-                                    }
+                                    action: viewModel.showCalendarView
                                 )
                                 
                                 Divider()
@@ -79,9 +76,7 @@ struct SettingsView: View {
                                     title: "Notifications",
                                     subtitle: "Customize prayer time alerts",
                                     showChevron: true,
-                                    action: {
-                                        showingNotificationsView = true
-                                    }
+                                    action: viewModel.showNotificationsView
                                 )
                                 
                                 Divider()
@@ -92,9 +87,7 @@ struct SettingsView: View {
                                     title: "About",
                                     subtitle: "App info and support",
                                     showChevron: true,
-                                    action: {
-                                        showingAboutView = true
-                                    }
+                                    action: viewModel.showAboutView
                                 )
                                 
                                 Divider()
@@ -106,9 +99,7 @@ struct SettingsView: View {
                                     subtitle: "Restore all settings to default",
                                     showChevron: false,
                                     isDestructive: true,
-                                    action: {
-                                        showingResetAlert = true
-                                    }
+                                    action: viewModel.showResetAlert
                                 )
                             }
                             .background(
@@ -126,39 +117,26 @@ struct SettingsView: View {
             }
         }
         .navigationBarHidden(true)
-        .sheet(isPresented: $showingCalculationView) {
+        .sheet(isPresented: $viewModel.showingCalculationView) {
             PrayerTimeCalculationView(prayerFetcher: prayerFetcher)
         }
-        .sheet(isPresented: $showingCalendarView) {
+        .sheet(isPresented: $viewModel.showingCalendarView) {
             CalendarSettingView()
         }
-        .sheet(isPresented: $showingNotificationsView) {
-            NotificationsView()
+        .sheet(isPresented: $viewModel.showingNotificationsView) {
+            NotificationsView(prayerFetcher: prayerFetcher)
         }
-        .sheet(isPresented: $showingAboutView) {
+        .sheet(isPresented: $viewModel.showingAboutView) {
             AboutView()
         }
-        .alert("Reset Settings", isPresented: $showingResetAlert) {
+        .alert("Reset Settings", isPresented: $viewModel.showingResetAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Reset", role: .destructive) {
-                resetToDefaultSettings()
+                viewModel.resetToDefaults()
             }
         } message: {
             Text("Are you sure you want to reset all settings to their default values? This action cannot be undone.")
         }
-    }
-    
-    private func resetToDefaultSettings() {
-        // Reset all UserDefaults/AppStorage values to defaults
-        UserDefaults.standard.removeObject(forKey: "timeFormat")
-        UserDefaults.standard.removeObject(forKey: "selectedCalculationMethod")
-        UserDefaults.standard.removeObject(forKey: "notificationsEnabled")
-        UserDefaults.standard.removeObject(forKey: "calendarType")
-        UserDefaults.standard.removeObject(forKey: "currentCity")
-        // Add other settings keys as needed
-        
-        // Notify prayer fetcher to reset to defaults
-        prayerFetcher.resetToDefaults()
     }
 }
 
@@ -190,7 +168,7 @@ struct SettingsRow: View {
                 if showChevron {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(Color.orange.opacity(0.8))
+                        .foregroundColor(Color.nooraniPrimary.opacity(0.8))
                 } else if isDestructive {
                     Image(systemName: "exclamationmark.triangle")
                         .font(.system(size: 16, weight: .medium))

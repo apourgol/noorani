@@ -2,7 +2,6 @@
 //  CalendarSettingView.swift
 //  Noorani
 //
-//  Created by Amin Pourgol on 10/20/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 

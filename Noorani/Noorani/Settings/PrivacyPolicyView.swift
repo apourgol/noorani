@@ -2,7 +2,6 @@
 //  PrivacyPolicyView.swift
 //  Noorani
 //
-//  Created by Amin Pourgol on 11/3/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
