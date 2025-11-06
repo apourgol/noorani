@@ -3,7 +3,7 @@
 //  Noorani
 //
 //  Created by neo on 9/29/25.
-//  Copyright © 2025 AP Bros. All rights reserved.
+
 //
 
 import SwiftUI

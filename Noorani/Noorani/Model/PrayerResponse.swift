@@ -1,8 +1,6 @@
 //
 //  PrayerResponse.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 10/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 

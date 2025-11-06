@@ -1,9 +1,7 @@
 //
 //  CalculationMethodSelectorView.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 11/1/25.
-//  Copyright © 2025 AP Bros. All rights reserved.
+ //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
 import SwiftUI

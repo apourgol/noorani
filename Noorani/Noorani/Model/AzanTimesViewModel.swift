@@ -1,8 +1,6 @@
 //
 //  AzanTimesViewModel.swift
 //  Noorani
-//
-//  Created by AP Bros on 11/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 

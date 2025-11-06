@@ -1,8 +1,9 @@
 //
 //  TermsOfServiceView.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
+   
+
 //
 
 import SwiftUI
@@ -67,38 +68,38 @@ struct TermsOfServiceView: View {
                                 description: "To provide accurate prayer times and Qibla direction, the app requires access to your device's location. This data is only used for calculations and is not stored or shared."
                             )
                             
-                            TermsBulletPoint(
-                                number: "3",
-                                title: "Notification Permission",
-                                description: "The app can send notifications to remind you of prayer times. You can enable or disable notifications at any time in the app settings."
-                            )
+//                            TermsBulletPoint(
+//                                number: "3",
+//                                title: "Notification Permission",
+//                                description: "The app can send notifications to remind you of prayer times. You can enable or disable notifications at any time in the app settings."
+//                            )
                             
                             TermsBulletPoint(
-                                number: "4",
+                                number: "3",
                                 title: "Data Usage",
                                 description: "We collect basic geolocation data to calculate prayer times and Qibla direction. All data processing is anonymous, and nothing is stored on external servers."
                             )
                             
                             TermsBulletPoint(
-                                number: "5",
+                                number: "4",
                                 title: "Accuracy Disclaimer",
                                 description: "While we strive for accuracy, prayer times may vary slightly based on calculation methods and local customs. Please verify with your local mosque or Islamic center when needed."
                             )
                             
                             TermsBulletPoint(
-                                number: "6",
+                                number: "5",
                                 title: "Free to Use",
                                 description: "Noorani is provided free of charge. We do not sell your data or display advertisements within the app."
                             )
                             
                             TermsBulletPoint(
-                                number: "7",
+                                number: "6",
                                 title: "Updates & Changes",
                                 description: "We may update these terms from time to time. Continued use of the app constitutes acceptance of any changes."
                             )
                             
                             TermsBulletPoint(
-                                number: "8",
+                                number: "7",
                                 title: "Contact",
                                 description: "If you have any questions or concerns about these terms, please contact us through the About section of the app."
                             )

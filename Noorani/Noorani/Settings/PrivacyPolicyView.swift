@@ -1,8 +1,9 @@
 //
 //  PrivacyPolicyView.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
+   
+
 //
 
 import SwiftUI
@@ -61,12 +62,18 @@ struct PrivacyPolicyView: View {
                                 description: "We use your device's location to calculate accurate prayer times and Qibla direction. Location data is processed locally on your device."
                             )
                             
+//                            PrivacyBulletPoint(
+//                                icon: "bell.fill",
+//                                title: "Notifications",
+//                                description: "We send local notifications to remind you of prayer times. These are managed entirely on your device."
+//                            )
+
                             PrivacyBulletPoint(
-                                icon: "bell.fill",
-                                title: "Notifications",
-                                description: "We send local notifications to remind you of prayer times. These are managed entirely on your device."
+                                icon: "compass.drawing",
+                                title: "Compass",
+                                description: "We use your device's compass to determine accurate Qibla direction. This sensor data is processed locally and never leaves your device."
                             )
-                            
+
                             PrivacyBulletPoint(
                                 icon: "lock.fill",
                                 title: "No Data Collection",

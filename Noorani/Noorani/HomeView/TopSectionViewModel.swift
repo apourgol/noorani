@@ -1,7 +1,6 @@
 //
 //  TopSectionViewModel.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 

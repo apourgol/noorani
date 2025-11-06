@@ -1,8 +1,5 @@
 //
-//  NooraniUITestsLaunchTests.swift
-//  NooraniUITests
-//
-//  Created by Amin Pourgol on 9/14/25.
+//  Noorani
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 

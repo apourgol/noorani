@@ -1,7 +1,6 @@
 //
 //  AboutView.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
@@ -60,7 +59,7 @@ struct AboutView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(.nooraniTextPrimary)
 
-                                Text("Prayer Times & Qibla")
+                                Text("Prayer Times. Holy Quran. Qibla Direction.")
                                     .font(.custom("Nunito-Regular", size: 16))
                                     .foregroundColor(.nooraniTextSecondary)
                             }
@@ -84,7 +83,7 @@ struct AboutView: View {
                                 .padding(.horizontal, 20)
                                 .padding(.top, 30)
 
-                            Text("Noorani provides accurate prayer times based on your location and preferred calculation method. The app supports diverse prayer time calculations, notifications, Islamic calendar, and a Qibla compass to help you find the direction of Mecca.")
+                            Text("Noorani provides accurate prayer times based on your location and preferred calculation method. The app supports various prayer time calculations, the Holy Quran, and a Qibla compass to help you find the direction of Mecca.")
                                 .font(.custom("Nunito-Regular", size: 16))
                                 .foregroundColor(.black.opacity(0.7))
                                 .lineSpacing(4)
@@ -113,7 +112,7 @@ struct AboutView: View {
                                             Spacer()
                                         }
                                         
-                                        Text("A collaborative project bringing you the best Prayer times app. Connect with Amir below:")
+                                        Text("Thank you for using Noorani! Feel free to connect with Amir below:")
                                             .font(.custom("Nunito-Regular", size: 14))
                                             .foregroundColor(.nooraniTextTertiary)
                                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -153,20 +152,49 @@ struct AboutView: View {
                             }
                             .padding(.top, 30)
 
-                            // Legal & Policies
-                            VStack(spacing: 1) {
-                                ActionRow(title: "Privacy Policy", systemImage: "hand.raised") {
-                                    navigationPath.append("PrivacyPolicy")
-                                }
+                            // Attributions Section
+                            VStack(alignment: .leading, spacing: 15) {
+                                Text("Attributions")
+                                    .font(.custom("Nunito-SemiBold", size: 18))
+                                    .foregroundColor(.nooraniTextSecondary)
+                                    .padding(.horizontal, 20)
 
-                                Divider().background(Color.gray.opacity(0.3))
-
-                                ActionRow(title: "Terms of Service", systemImage: "doc.text") {
-                                    navigationPath.append("TermsOfService")
+                                VStack(spacing: 12) {
+                                    VStack(spacing: 10) {
+                                        Text("Icons used in this app are provided by:")
+                                            .font(.custom("Nunito-Regular", size: 14))
+                                            .foregroundColor(.nooraniTextTertiary)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
+                                        
+                                        VStack(alignment: .leading, spacing: 8) {
+                                            AttributionLinkRow(
+                                                title: "Makkah icons by rimsha-ibrar",
+                                                url: "https://www.flaticon.com/free-icons/makkah"
+                                            )
+                                            
+                                            AttributionLinkRow(
+                                                title: "Islamic icons by Atif Arshad",
+                                                url: "https://www.flaticon.com/free-icons/islamic"
+                                            )
+                                            
+                                            AttributionLinkRow(
+                                                title: "Quran icon by VectorPortal",
+                                                url: "https://www.freepik.com/icon/prophet_10031075#fromView=search&page=1&position=28&uuid=3edb6063-725b-4da0-82be-676f18042121"
+                                            )
+                                        }
+                                    }
+                                    .padding(.all, 20)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 16)
+                                            .fill(Color.white)
+                                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+                                    )
                                 }
+                                .padding(.horizontal, 20)
                             }
-                            .padding(.horizontal, 20)
                             .padding(.top, 30)
+                            .padding(.bottom, 30)
+
                         }
                     }
 
@@ -314,6 +342,42 @@ struct DeveloperLinkRow: View {
             
             Button("Cancel", role: .cancel) { }
         }
+    }
+    
+    private func openURL(_ urlString: String) {
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url)
+    }
+}
+
+struct AttributionLinkRow: View {
+    let title: String
+    let url: String
+    
+    var body: some View {
+        Button(action: {
+            openURL(url)
+        }) {
+            HStack(spacing: 8) {
+                Image(systemName: "link")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundColor(.nooraniPrimary.opacity(0.7))
+                
+                Text(title)
+                    .font(.custom("Nunito-Regular", size: 13))
+                    .foregroundColor(.nooraniTextTertiary)
+                    .multilineTextAlignment(.leading)
+                
+                Spacer()
+                
+                Image(systemName: "arrow.up.right")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundColor(.nooraniPrimary.opacity(0.6))
+            }
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
     }
     
     private func openURL(_ urlString: String) {

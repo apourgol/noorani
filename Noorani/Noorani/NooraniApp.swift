@@ -1,8 +1,5 @@
 //
-//  NooraniApp.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 9/14/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
@@ -13,7 +10,7 @@ struct NooraniApp: App {
     var body: some Scene {
         WindowGroup {
             SplashScreenView()
-                .preferredColorScheme(.light) // dark mode support 2.0
+                .preferredColorScheme(.light)
         }
     }
 }

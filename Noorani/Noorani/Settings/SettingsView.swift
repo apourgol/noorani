@@ -1,8 +1,9 @@
 //
 //  SettingsView.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
+   
+
 //
 
 import SwiftUI
@@ -52,36 +53,37 @@ struct SettingsView: View {
                                 // Prayer Time Calculation
                                 SettingsRow(
                                     title: "Prayer Time Calculation",
-                                    subtitle: "Choose method, time format & optional prayers",
+                                    subtitle: "Customize method and time format",
                                     showChevron: true,
                                     action: viewModel.showCalculationView
                                 )
                                 
                                 Divider()
                                     .background(Color.gray.opacity(0.2))
-                                
+
+                                // COMMENTING OUT UNTIL WE LAUNCH CALENDAR AND NOTIFICATIONS INSHALLAH
                                 // Calendar Setting
-                                SettingsRow(
-                                    title: "Calendar Setting",
-                                    subtitle: "Hijri and Gregorian options",
-                                    showChevron: true,
-                                    action: viewModel.showCalendarView
-                                )
-                                
-                                Divider()
-                                    .background(Color.gray.opacity(0.2))
-                                
-                                // Notifications
-                                SettingsRow(
-                                    title: "Notifications",
-                                    subtitle: "Customize prayer time alerts",
-                                    showChevron: true,
-                                    action: viewModel.showNotificationsView
-                                )
-                                
-                                Divider()
-                                    .background(Color.gray.opacity(0.2))
-                                
+//                                SettingsRow(
+//                                    title: "Calendar Setting",
+//                                    subtitle: "Hijri and Gregorian options",
+//                                    showChevron: true,
+//                                    action: viewModel.showCalendarView
+//                                )
+//                                
+//                                Divider()
+//                                    .background(Color.gray.opacity(0.2))
+//                                
+//                                // Notifications
+//                                SettingsRow(
+//                                    title: "Notifications",
+//                                    subtitle: "Customize prayer time alerts",
+//                                    showChevron: true,
+//                                    action: viewModel.showNotificationsView
+//                                )
+//                                
+//                                Divider()
+//                                    .background(Color.gray.opacity(0.2))
+//                                
                                 // About
                                 SettingsRow(
                                     title: "About",
@@ -92,7 +94,26 @@ struct SettingsView: View {
                                 
                                 Divider()
                                     .background(Color.gray.opacity(0.2))
-                                
+
+                                // Privacy Policy
+                                SettingsRow(
+                                    title: "Privacy Policy",
+                                    subtitle: "How we handle your data",
+                                    showChevron: true,
+                                    action: viewModel.showPrivacyPolicyView
+                                )
+
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
+
+                                // Terms of Service
+                                SettingsRow(
+                                    title: "Terms of Service",
+                                    subtitle: "User agreement and conditions",
+                                    showChevron: true,
+                                    action: viewModel.showTermsOfServiceView
+                                )
+
                                 // Reset to Default Settings
                                 SettingsRow(
                                     title: "Reset to Default Settings",
@@ -117,6 +138,12 @@ struct SettingsView: View {
             }
         }
         .navigationBarHidden(true)
+        .sheet(isPresented: $viewModel.showingPrivacyPolicyView) {
+            PrivacyPolicyView()
+        }
+        .sheet(isPresented: $viewModel.showingTermsOfServiceView) {
+            TermsOfServiceView()
+        }
         .sheet(isPresented: $viewModel.showingCalculationView) {
             PrayerTimeCalculationView(prayerFetcher: prayerFetcher)
         }

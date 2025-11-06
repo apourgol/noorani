@@ -1,8 +1,9 @@
 //
 //  PrayerTimeCalculationView.swift
 //  Noorani
-//
 //  Copyright © 2025 AP Bros. All rights reserved.
+ 
+
 //
 
 import SwiftUI
@@ -128,7 +129,7 @@ struct PrayerTimeCalculationView: View {
 
                         // Prayer Visibility Section
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Optional Prayer Times")
+                            Text("Additional Prayer Times")
                                 .font(.custom("Nunito-Regular", size: 18))
                                 .fontWeight(.semibold)
                                 .foregroundColor(.black.opacity(0.8))

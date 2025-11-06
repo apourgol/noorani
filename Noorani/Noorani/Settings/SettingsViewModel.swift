@@ -1,9 +1,10 @@
 //
 //  SettingsViewModel.swift
 //  Noorani
-//
-//  Created by AP Bros on 11/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
+ 
+  
+
 //
 
 import Foundation
@@ -46,7 +47,18 @@ class SettingsViewModel: ObservableObject {
     func showResetAlert() {
         showingResetAlert = true
     }
-    
+
+    @Published var showingPrivacyPolicyView = false
+    @Published var showingTermsOfServiceView = false
+
+    func showPrivacyPolicyView() {
+        showingPrivacyPolicyView = true
+    }
+
+    func showTermsOfServiceView() {
+        showingTermsOfServiceView = true
+    }
+
     func resetToDefaults() {
         // Reset all UserDefaults/AppStorage values to defaults
         UserDefaults.standard.removeObject(forKey: "timeFormat")
