@@ -1,9 +1,10 @@
 //
 //  LocationManager.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 10/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
+ 
+
+
 //
 
 
@@ -11,7 +12,12 @@ import CoreLocation
 import SwiftUI
 
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
-    private let locationManager = CLLocationManager()
+    private lazy var locationManager: CLLocationManager = {
+        let manager = CLLocationManager()
+        manager.delegate = self
+        manager.desiredAccuracy = kCLLocationAccuracyBest
+        return manager
+    }()
     @AppStorage("currentCity") private var currentCity = ""
     @AppStorage("currentLat") private var currentLat: Double = 0
     @AppStorage("currentLng") private var currentLng: Double = 0
@@ -25,12 +31,13 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     override init() {
         super.init()
-        locationManager.delegate = self
-        locationManager.desiredAccuracy = kCLLocationAccuracyBest
+        // locationManager is now lazy, so it won't be created until first accessed
     }
 
     func requestLocation(completion: @escaping () -> Void) {
-        isLoading = true
+        DispatchQueue.main.async {
+            self.isLoading = true
+        }
 
         switch authorizationStatus {
         case .notDetermined:
@@ -40,11 +47,15 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
             locationManager.requestLocation()
             completion()
         case .denied, .restricted:
-            isLoading = false
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
             print("Location access denied")
             completion()
         @unknown default:
-            isLoading = false
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
             completion()
         }
     }
@@ -57,26 +68,32 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     // MARK: - CLLocationManagerDelegate
 
     func locationManagerDidChangeAuthorization(_ manager: CLLocationManager) {
-        authorizationStatus = manager.authorizationStatus
+        DispatchQueue.main.async {
+            self.authorizationStatus = manager.authorizationStatus
 
-        if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
-            locationManager.requestLocation()
-        } else if authorizationStatus == .denied || authorizationStatus == .restricted {
-            isLoading = false
+            if self.authorizationStatus == .authorizedWhenInUse || self.authorizationStatus == .authorizedAlways {
+                self.locationManager.requestLocation()
+            } else if self.authorizationStatus == .denied || self.authorizationStatus == .restricted {
+                self.isLoading = false
+            }
         }
     }
 
     func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
         guard let location = locations.first else {
-            isLoading = false
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
             return
         }
         
         // Save coordinates
-        latitude = location.coordinate.latitude
-        currentLat = location.coordinate.latitude
-        longitude = location.coordinate.longitude
-        currentLng = location.coordinate.longitude
+        DispatchQueue.main.async {
+            self.latitude = location.coordinate.latitude
+            self.currentLat = location.coordinate.latitude
+            self.longitude = location.coordinate.longitude
+            self.currentLng = location.coordinate.longitude
+        }
 
         // Reverse geocode to get city name -> TODO: INTEGRATE PRAYER TIMES API BASED ON LOCATION!
         let geocoder = CLGeocoder()
@@ -101,7 +118,9 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
-        isLoading = false
+        DispatchQueue.main.async {
+            self.isLoading = false
+        }
         print("Location error: \(error.localizedDescription)")
     }
 

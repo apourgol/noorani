@@ -2,15 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Noorani needs location access to show accurate prayer times for your area.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Noorani needs location access to show accurate prayer times for your area.</string>
+	<key>CFBundleGetInfoString</key>
+	<string></string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Nunito-SemiBold.ttf</string>
 		<string>Nunito-Light.ttf</string>
 		<string>Nunito-Regular.ttf</string>
+		<string>KFGQPC Uthman Taha Naskh Bold.ttf</string>
 	</array>
 </dict>
 </plist>

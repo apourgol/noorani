@@ -3,37 +3,29 @@
 //  Noorani
 //
 //  Created by neo on 9/29/25.
-//  Copyright © 2025 AP Bros. All rights reserved.
+
 //
 
 import SwiftUI
 
 struct TopSectionView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @StateObject private var locationManager = LocationManager()
-    @State private var showLocationMenu = false
-    @AppStorage("currentCity") private var currentCity = ""
+    @ObservedObject var locationManager: LocationManager
+    @StateObject private var viewModel: TopSectionViewModel
     
-    private func formatDateFromAdhanAPI(date: String) -> String {
-        let inputFormatter = DateFormatter()
-        inputFormatter.dateFormat = "dd MMM yyyy" // Matches "04 Oct 2025"
-
-        guard let parsedDate = inputFormatter.date(from: date) else {
-            return date // fallback if parsing fails
-        }
-
-        let outputFormatter = DateFormatter()
-        outputFormatter.locale = Locale.current
-        outputFormatter.dateStyle = .long
-
-        return outputFormatter.string(from: parsedDate)
+    // Custom initializer to inject dependencies
+    init(prayerFetcher: PrayerTimesFetcher, locationManager: LocationManager) {
+        self.prayerFetcher = prayerFetcher
+        self.locationManager = locationManager
+        self._viewModel = StateObject(wrappedValue: TopSectionViewModel(
+            prayerTimesFetcher: prayerFetcher,
+            locationManager: locationManager
+        ))
     }
-
     
     var body: some View {
         Group {
             VStack(alignment: .leading, spacing: 0) {
-                // Remove Spacer and use padding instead
                 // Sun logo on left, location indicator on right
                 HStack(alignment: .center) {
                     // Sun logo - fixed size for all devices, make it bigger on iPad (180) vs 120
@@ -51,101 +43,106 @@ struct TopSectionView: View {
                     Spacer()
                     
                     // Location button - shows dynamic city name
-                    Button {
-                        showLocationMenu = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            if locationManager.isLoading {
-                                ProgressView()
-                                    .scaleEffect(0.8)
-                                    .foregroundColor(Color(hex: "#fab555"))
-                            } else {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Color(hex: "#fab555"))
-                            }
-                            
-                            Text(currentCity)
-                                .font(.custom("Nunito-Light", size: 15))
-                                .foregroundColor(.black.opacity(0.8))
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color(hex: "#fddaaa"))
-                        .cornerRadius(16)
-                    }
-                    .sheet(isPresented: $showLocationMenu) {
-                        LocationMenuView(locationManager: locationManager)
-                    }
+                    LocationButton(
+                        currentCity: viewModel.currentCity,
+                        isLoading: viewModel.isLocationLoading,
+                        action: viewModel.showLocationMenuAction
+                    )
                 }
                 .padding(.horizontal, 24)
                 
-                
                 // Prayer information - reduced spacing between Next Prayer and Dhuhr
-                HStack(alignment: .lastTextBaseline) {
-                    VStack(alignment: .leading, spacing: 2) { // Reduced from 4 to 2
-                        Text("Next Prayer")
-                            .font(.custom("Nunito-Regular", size: 16))
-                            .foregroundColor(.black.opacity(0.7))
-                        
-                        // TODO: update this to be correct prayer
-                        Text(prayerFetcher.nextPrayerName)
-                            .font(.custom("Nunito-SemiBold", size: 48))
-                            .foregroundColor(.black)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.5)
-                    }
-                    
-                    Spacer()
-                    
-                    // TODO: IMPLEMENT COUNTDOWN HERE FOR NEXT PRAYER OR SUNRISE/SUNSET
-                    Text(prayerFetcher.countdown)
-                        .font(.custom("Nunito-Regular", size: 32))
-                        .foregroundColor(.black)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.5)
-                }
+                PrayerInfoSection(
+                    nextEventLabel: viewModel.getNextEventLabel(viewModel.nextPrayerName),
+                    nextPrayerName: viewModel.nextPrayerName,
+                    countdown: viewModel.countdown
+                )
                 .padding(.horizontal, 24)
                 .padding(.bottom)
             }
+            
             // current date
             HStack {
-                Text(formatDateFromAdhanAPI(date: prayerFetcher.readableDate))
+                Text(viewModel.formatDateFromAdhanAPI(date: viewModel.readableDate))
                     .font(.custom("Nunito-Regular", size: 18))
-                    .foregroundColor(.black.opacity(0.8))
+                    .foregroundColor(.nooraniTextSecondary)
             }
+        }
+        .sheet(isPresented: $viewModel.showLocationMenu) {
+            LocationMenuView(locationManager: locationManager)
         }
     }
 }
 
-// Extension for hex color support
-extension Color {
-    init(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        Scanner(string: hex).scanHexInt64(&int)
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 3:
-            (a, r, g, b) = (255, (int >> 8) * 17, (int >> 4 & 0xF) * 17, (int & 0xF) * 17)
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            (a, r, g, b) = (1, 1, 1, 0)
+// MARK: - Location Button Component
+struct LocationButton: View {
+    let currentCity: String
+    let isLoading: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 4) {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                        .foregroundColor(.nooraniPrimary)
+                } else {
+                    Image(systemName: "location.fill")
+                        .font(.system(size: 14))
+                        .foregroundColor(.nooraniPrimary)
+                }
+                
+                Text(currentCity)
+                    .font(.custom("Nunito-Light", size: 15))
+                    .foregroundColor(.black.opacity(0.8))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(hex: "#fddaaa"))
+            .cornerRadius(16)
         }
-        self.init(
-            .sRGB,
-            red: Double(r) / 255,
-            green: Double(g) / 255,
-            blue:  Double(b) / 255,
-            opacity: Double(a) / 255
-        )
+    }
+}
+
+// MARK: - Prayer Info Section Component
+struct PrayerInfoSection: View {
+    let nextEventLabel: String
+    let nextPrayerName: String
+    let countdown: String
+    
+    var body: some View {
+        HStack(alignment: .lastTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) { // Reduced from 4 to 2
+                // Show "Next Prayer" or "Next Event" based on what's next
+                Text(nextEventLabel)
+                    .font(.custom("Nunito-Regular", size: 16))
+                    .foregroundColor(.nooraniTextSecondary)
+                
+                // TODO: update this to be correct prayer
+                Text(nextPrayerName)
+                    .font(.custom("Nunito-SemiBold", size: 48))
+                    .foregroundColor(.nooraniTextPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.5)
+            }
+            
+            Spacer()
+            
+            // TODO: IMPLEMENT COUNTDOWN HERE FOR NEXT PRAYER OR SUNRISE/SUNSET
+            Text(countdown)
+                .font(.custom("Nunito-Regular", size: 32))
+                .foregroundColor(.nooraniTextPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.5)
+        }
     }
 }
 
 #Preview {
-    TopSectionView(prayerFetcher: PrayerTimesFetcher())
+    TopSectionView(
+        prayerFetcher: PrayerTimesFetcher(),
+        locationManager: LocationManager()
+    )
 }

@@ -1,85 +1,85 @@
 //
 //  AzanTimesView.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 10/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
 import SwiftUI
+import Foundation
 
 struct AzanTimesView: View {
     @ObservedObject var fetcher: PrayerTimesFetcher
-    @AppStorage("currentCity") private var currentCity = ""
+    @StateObject private var viewModel: AzanTimesViewModel
     @StateObject private var locationManager = LocationManager()
     
-    @State var isLoading = false
-    
+    // Custom initializer to inject dependencies
+    init(fetcher: PrayerTimesFetcher) {
+        self.fetcher = fetcher
+        // We need to use a private property to create the StateObject
+        self._viewModel = StateObject(wrappedValue: AzanTimesViewModel(
+            prayerTimesFetcher: fetcher,
+            locationManager: LocationManager()
+        ))
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            let orderedKeys = ["Fajr", "Sunrise", "Dhuhr", "Sunset", "Maghrib", "Midnight"]
-            
-            if isLoading {
+            if viewModel.isLoading || viewModel.timings.isEmpty {
                 Spacer()
                 ProgressView()
                 Spacer()
             } else {
                 ScrollView {
                     VStack(spacing: 14) {
-                        ForEach(orderedKeys, id: \.self) { key in
-                            if let value = fetcher.timings[key] {
-                                Capsule()
-                                    .stroke(Color.black, style: StrokeStyle(lineWidth: 1))
-                                    .frame(height: 50)
-                                    .foregroundStyle(.clear)
-                                    .overlay {
-                                        HStack {
-                                            Text(key)
-                                            Spacer()
-                                            Text(formatTime(value))
-                                        }
-                                        .font(.custom("Nunito-Regular", size: 30))
-                                        .padding(.horizontal)
-                                    }
+                        ForEach(viewModel.visiblePrayerKeys, id: \.self) { key in
+                            if let value = viewModel.timings[key] {
+                                PrayerTimeRow(
+                                    prayerName: key,
+                                    prayerTime: viewModel.formatTime(value)
+                                )
                             }
                         }
                     }
+                    .id(viewModel.refreshID) // refresh when this ID changes
                     .padding(.horizontal, 22)
                     .padding(.vertical, 1)
                 }
-                
-            }
-        }
-        .onAppear {
-            isLoading = true // TODO: This is causing a bug. We're seeing the loading happening after switching tabs. Needs fixing
-        }
-        .onChange(of: locationManager.latitude) {
-            locationManager.requestLocation() {
-                fetcher.fetchPrayerTimes(latitude: locationManager.latitude ?? 0, longitude: locationManager.longitude ?? 0)
-            }
-            isLoading = false
-        }
-        .onChange(of: currentCity) {
-            locationManager.getCoordinates(for: currentCity) { coordinate in
-                if let coordinate = coordinate {
-                    fetcher.fetchPrayerTimes(latitude: coordinate.latitude, longitude: coordinate.longitude)
-                } else {
-                    print("Could not find coordinates.")
+                .refreshable {
+                    // Pull to refresh
+                    viewModel.refreshPrayerTimes()
                 }
             }
         }
-    }
-    
-    func formatTime(_ isoString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime]
-        if let date = formatter.date(from: isoString) {
-            let displayFormatter = DateFormatter()
-            displayFormatter.timeStyle = .short
-            displayFormatter.locale = Locale.current
-            return displayFormatter.string(from: date)
+        .onChange(of: fetcher.showAsr) { _, _ in
+            viewModel.triggerRefresh()
         }
-        return isoString
+        .onChange(of: fetcher.showIsha) { _, _ in
+            viewModel.triggerRefresh()
+        }
+        // Note: Midnight is always visible - no onChange needed
+    }
+}
+
+// MARK: - Prayer Time Row Component
+struct PrayerTimeRow: View {
+    let prayerName: String
+    let prayerTime: String
+    
+    var body: some View {
+        Capsule()
+            .stroke(Color.nooraniTextPrimary, style: StrokeStyle(lineWidth: 1))
+            .frame(height: 50)
+            .foregroundStyle(.clear)
+            .overlay {
+                HStack {
+                    Text(prayerName)
+                    Spacer()
+                    Text(prayerTime)
+                }
+                .font(.custom("Nunito-Regular", size: 30))
+                .foregroundColor(.nooraniTextPrimary)
+                .padding(.horizontal)
+            }
     }
 }
 

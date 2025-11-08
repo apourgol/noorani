@@ -1,9 +1,10 @@
 //
 //  LocationMenuView.swift
 //  Noorani
-//
-//  Created by Amin Pourgol on 10/4/25.
 //  Copyright © 2025 AP Bros. All rights reserved.
+ 
+  
+
 //
 
 import SwiftUI
@@ -11,13 +12,13 @@ import SwiftUI
 struct LocationMenuView: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var locationManager: LocationManager
-    @State private var searchText = ""
+    @StateObject private var viewModel: LocationMenuViewModel
     
-    private let popularCities = [
-        "New York, NY", "Los Angeles, CA", "Chicago, IL", "Houston, TX",
-        "Fairfax, VA", "Philadelphia, PA", "Washington, D.C.", "San Diego, CA",
-        "Dallas, TX", "Dearborn, MI", "Austin, TX", "Toronto, CA"
-    ]
+    // Custom initializer for dependency injection
+    init(locationManager: LocationManager) {
+        self.locationManager = locationManager
+        self._viewModel = StateObject(wrappedValue: LocationMenuViewModel(locationManager: locationManager))
+    }
     
     var body: some View {
         NavigationView {
@@ -27,7 +28,7 @@ struct LocationMenuView: View {
                     VStack(spacing: 12) {
                         Image(systemName: "location.circle")
                             .font(.system(size: 48))
-                            .foregroundColor(Color(hex: "#fab555"))
+                            .foregroundColor(.nooraniPrimary)
                         
                         Text("Choose Your Location")
                             .font(.custom("Nunito-SemiBold", size: 24))
@@ -43,19 +44,19 @@ struct LocationMenuView: View {
                     
                     // Current Location Option - Enhanced Design
                     Button(action: {
-                        locationManager.requestLocation() {
+                        viewModel.requestCurrentLocation {
                             dismiss()
                         }
                     }) {
                         HStack(spacing: 16) {
                             ZStack {
                                 Circle()
-                                    .fill(Color(hex: "#fab555").opacity(0.1))
+                                    .fill(Color.nooraniPrimary.opacity(0.1))
                                     .frame(width: 50, height: 50)
                                 
                                 Image(systemName: "location.circle.fill")
                                     .font(.title2)
-                                    .foregroundColor(Color(hex: "#fab555"))
+                                    .foregroundColor(.nooraniPrimary)
                             }
                             
                             VStack(alignment: .leading, spacing: 4) {
@@ -69,10 +70,10 @@ struct LocationMenuView: View {
                             
                             Spacer()
                             
-                            if locationManager.isLoading {
+                            if viewModel.isLoading {
                                 ProgressView()
                                     .scaleEffect(1.0)
-                                    .foregroundColor(Color(hex: "#fab555"))
+                                    .foregroundColor(.nooraniPrimary)
                             } else {
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 16, weight: .medium))
@@ -87,10 +88,10 @@ struct LocationMenuView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 16)
-                                .stroke(Color(hex: "#fab555").opacity(0.2), lineWidth: 1)
+                                .stroke(Color.nooraniPrimary.opacity(0.2), lineWidth: 1)
                         )
                     }
-                    .disabled(locationManager.isLoading)
+                    .disabled(viewModel.isLoading)
                     .padding(.horizontal, 20)
                     
                     // Search Bar - Enhanced Design
@@ -106,12 +107,13 @@ struct LocationMenuView: View {
                                     .font(.system(size: 18))
                                     .foregroundColor(.gray.opacity(0.6))
                                 
-                                TextField("Enter city name...", text: $searchText)
+                                TextField("Enter city name...", text: $viewModel.searchText)
                                     .font(.custom("Nunito-Regular", size: 16))
                                     .onSubmit {
-                                        if !searchText.isEmpty {
-                                            locationManager.updateCity(to: searchText)
-                                            dismiss()
+                                        if !viewModel.searchText.isEmpty {
+                                            viewModel.selectCity(viewModel.searchText) {
+                                                dismiss()
+                                            }
                                         }
                                     }
                             }
@@ -126,9 +128,10 @@ struct LocationMenuView: View {
                             )
                             
                             Button {
-                                if !searchText.isEmpty {
-                                    locationManager.updateCity(to: searchText)
-                                    dismiss()
+                                if !viewModel.searchText.isEmpty {
+                                    viewModel.selectCity(viewModel.searchText) {
+                                        dismiss()
+                                    }
                                 }
                             } label: {
                                 RoundedRectangle(cornerRadius: 20)
@@ -155,10 +158,11 @@ struct LocationMenuView: View {
                             GridItem(.flexible(), spacing: 12),
                             GridItem(.flexible(), spacing: 12)
                         ], spacing: 12) {
-                            ForEach(popularCities, id: \.self) { city in
+                            ForEach(viewModel.filteredCities, id: \.self) { city in
                                 Button(action: {
-                                    locationManager.updateCity(to: city)
-                                    dismiss()
+                                    viewModel.selectCity(city) {
+                                        dismiss()
+                                    }
                                 }) {
                                     Text(city)
                                         .font(.custom("Nunito-Regular", size: 15))
@@ -194,7 +198,7 @@ struct LocationMenuView: View {
                         dismiss()
                     }
                     .font(.custom("Nunito-SemiBold", size: 16))
-                    .foregroundColor(Color(hex: "#fab555"))
+                    .foregroundColor(.nooraniPrimary)
                 }
             }
         }
