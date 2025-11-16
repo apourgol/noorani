@@ -55,19 +55,19 @@ struct SplashScreenView: View {
             }
             .onAppear {
                 // Fade in
-                withAnimation(.easeIn(duration: 0.4)) {
+                withAnimation(.easeIn(duration: 1)) {
                     opacity = 1.0
                 }
 
                 // Fade out before transitioning
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                    withAnimation(.easeOut(duration: 0.3)) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                    withAnimation(.easeOut(duration: 1)) {
                         opacity = 0.0
                     }
                 }
 
                 // Transition to main app
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
                     isActive = true
                 }
             }

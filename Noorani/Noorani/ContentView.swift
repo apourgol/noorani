@@ -1,11 +1,8 @@
 //
 //  ContentView.swift
 //  Noorani
-//  Copyright © 2025 AP Bros. All rights reserved.
- 
-
-
 //
+//  Copyright © 2025 AP Bros. All rights reserved.
 
 import SwiftUI
 
@@ -50,20 +47,25 @@ struct ContentView: View {
                 }
                 .tag(0)
             }
-                
-            Tab("Holy Quran", systemImage: "text.book.closed.fill") {
-                QuranView()
+            
+            Tab("Calendar", systemImage: "calendar") {
+                AzanCalendarView()
                     .tag(1)
             }
                 
-            Tab("Qibla", systemImage: "cube.fill") {
-                QiblaFinderView(locationManager: locationManager)
+            Tab("Holy Quran", systemImage: "text.book.closed.fill") {
+                QuranView()
                     .tag(2)
+            }
+                
+            Tab("Qibla", systemImage: "cube.filled") {
+                QiblaFinderView(locationManager: locationManager)
+                    .tag(3)
             }
                 
             Tab("Settings", systemImage: "gearshape") {
                 SettingsView(prayerFetcher: fetcher)
-                    .tag(3)
+                    .tag(4)
             }
         }
         .tint(Color(hex: "#fab555")) // TODO: We should be adding the colors as assets

@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AD0C03C52EBEEA96000BF455 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = AD0C03C42EBEEA96000BF455 /* MijickCalendarView */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		ADCE47CC2E77A2AA004F5972 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD0C03C52EBEEA96000BF455 /* MijickCalendarView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = Noorani;
 			packageProductDependencies = (
+				AD0C03C42EBEEA96000BF455 /* MijickCalendarView */,
 			);
 			productName = Noorani;
 			productReference = ADCE47BA2E77A2A8004F5972 /* Noorani.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = ADCE47B12E77A2A8004F5972;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = ADCE47BB2E77A2A8004F5972 /* Products */;
 			projectDirPath = "";
@@ -640,6 +649,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Mijick/CalendarView";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AD0C03C42EBEEA96000BF455 /* MijickCalendarView */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */;
+			productName = MijickCalendarView;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = ADCE47B22E77A2A8004F5972 /* Project object */;
 }
