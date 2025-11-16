@@ -58,7 +58,7 @@ struct ContentView: View {
                     .tag(2)
             }
                 
-            Tab("Qibla", systemImage: "cube.filled") {
+            Tab("Qibla", systemImage: "cube.fill") {
                 QiblaFinderView(locationManager: locationManager)
                     .tag(3)
             }
