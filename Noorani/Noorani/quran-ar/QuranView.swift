@@ -129,31 +129,16 @@ struct QuranView: View {
 // MARK: - 📖 Header Component
 struct QuranHeaderView: View {
     var body: some View {
-        VStack(spacing: 15) {
-            // 📖 Custom Book Asset (condensed size)
-            Image("book")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 42, height: 42)
-                .foregroundColor(Color.nooraniPrimary)
-                .shadow(color: Color.nooraniPrimary.opacity(0.3), radius: 6, x: 0, y: 0)
-            
-            // Title
-            Text("Holy Quran")
-                .font(.largeTitle)
-                .fontWeight(.bold)
+        VStack(spacing: 8) {
+            // Big cursive "The Holy Quran" title
+            Text("The Holy Quran")
+                .font(.custom("Nunito", size: 42))
+                .italic()
                 .foregroundColor(Color.nooraniTextPrimary)
-            
-            // Subtitle
-            Text("Juz 1-30 • Surahs 1-114")
-                .font(.subheadline)
-                .foregroundColor(Color.nooraniTextSecondary)
-                .padding(.horizontal, 20)
-                .padding(.vertical, 8)
-                .background(Color.nooraniCardBackground.opacity(0.7))
-                .cornerRadius(15)
+                .shadow(color: Color.nooraniPrimary.opacity(0.2), radius: 4, x: 0, y: 2)
         }
         .padding(.horizontal, 20)
+        .padding(.vertical, 10)
     }
 }
 

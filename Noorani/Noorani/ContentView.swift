@@ -7,20 +7,23 @@
 import SwiftUI
 
 struct ContentView: View {
-    @StateObject var fetcher = PrayerTimesFetcher()
-    @StateObject private var locationManager = LocationManager()
+    @ObservedObject var fetcher: PrayerTimesFetcher
+    @ObservedObject var locationManager: LocationManager
     @StateObject private var viewModel: ContentViewModel
-    
-    // Custom initializer
-    init() {
-        let fetcher = PrayerTimesFetcher()
-        let locationManager = LocationManager()
-        
-        self._fetcher = StateObject(wrappedValue: fetcher)
-        self._locationManager = StateObject(wrappedValue: locationManager)
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var lastRefreshDate: Date = Date()
+
+    // Custom initializer - accepts preloaded instances from SplashScreen
+    init(prayerFetcher: PrayerTimesFetcher? = nil, locationManager: LocationManager? = nil) {
+        // Use provided instances or create new ones (for Preview)
+        let fetcher = prayerFetcher ?? PrayerTimesFetcher()
+        let locMgr = locationManager ?? LocationManager()
+
+        self.fetcher = fetcher
+        self.locationManager = locMgr
         self._viewModel = StateObject(wrappedValue: ContentViewModel(
             prayerTimesFetcher: fetcher,
-            locationManager: locationManager
+            locationManager: locMgr
         ))
     }
     
@@ -72,14 +75,52 @@ struct ContentView: View {
         .onAppear {
             // The ViewModel handles this automatically now
         }
-        .onChange(of: locationManager.latitude) { _, newLat in
-            if let newLat = newLat {
-                viewModel.handleLocationChange(latitude: newLat, longitude: locationManager.longitude)
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                // Check if user has "current location" mode enabled
+                let useCurrentLocation = UserDefaults.standard.bool(forKey: "useCurrentLocation")
+
+                // Only auto-refresh if "current location" mode is active
+                if useCurrentLocation {
+                    let timeSinceLastRefresh = Date().timeIntervalSince(lastRefreshDate)
+
+                    // Only refresh if more than 1 minute has passed (avoid duplicate refreshes)
+                    if timeSinceLastRefresh > 60 {
+                        print("🔄 App became active with current location mode, refreshing...")
+                        lastRefreshDate = Date()
+
+                        // Request fresh location - coordinates will be updated via onChange handlers
+                        locationManager.requestLocation {
+                            print("📍 Auto-refresh: Location request completed")
+                        }
+                    }
+                }
             }
         }
-        .onChange(of: locationManager.longitude) { _, newLng in
-            if let newLng = newLng {
-                viewModel.handleLocationChange(latitude: locationManager.latitude, longitude: newLng)
+        .onChange(of: locationManager.isLoading) { oldValue, newValue in
+            // Trigger when location loading completes (goes from true to false)
+            if oldValue && !newValue {
+                print("📍 Location loading completed, checking for coordinates...")
+                if let lat = locationManager.latitude, let lng = locationManager.longitude {
+                    print("📍 Valid coordinates received: \(lat), \(lng)")
+                    viewModel.handleLocationChange(latitude: lat, longitude: lng)
+                } else {
+                    print("⚠️ Location loading completed but coordinates are nil")
+                }
+            }
+        }
+        .onChange(of: locationManager.latitude) { oldValue, newValue in
+            // Watch for manual city selection (coordinates change without isLoading)
+            if let lat = newValue, let lng = locationManager.longitude {
+                print("📍 ContentView: Latitude changed to \(lat), updating prayer times...")
+                viewModel.handleLocationChange(latitude: lat, longitude: lng)
+            }
+        }
+        .onChange(of: locationManager.longitude) { oldValue, newValue in
+            // Watch for manual city selection (coordinates change without isLoading)
+            if let lat = locationManager.latitude, let lng = newValue {
+                print("📍 ContentView: Longitude changed to \(lng), updating prayer times...")
+                viewModel.handleLocationChange(latitude: lat, longitude: lng)
             }
         }
     }
