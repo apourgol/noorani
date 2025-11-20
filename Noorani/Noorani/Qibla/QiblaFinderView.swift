@@ -381,18 +381,6 @@ struct QiblaArrowView: View {
                 .frame(width: isAligned ? 32 : 26, height: isAligned ? 32 : 26)
                 .offset(y: -105)
                 .shadow(color: Color.nooraniShadow, radius: 3)
-
-            // Arrow Tail (Base) with Noorani colors
-            Circle()
-                .fill(Color.red.opacity(0.8))
-                .frame(width: 16, height: 16)
-                .offset(y: 50)
-                .overlay(
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 8, height: 8)
-                        .offset(y: 50)
-                )
         }
         .rotationEffect(.degrees(rotationAngle))
         .opacity(qiblaDirection != nil && currentHeading != nil ? 1.0 : 0.4)

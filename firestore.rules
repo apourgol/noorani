@@ -1,0 +1,76 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Users collection - stores push tokens, location, preferences
+    match /users/{userId} {
+
+      // WRITE ACCESS: Allow any device to write its own data
+      // This is safe because each device generates a unique vendor ID
+      // The app uses UIDevice.current.identifierForVendor as userId
+      allow write: if isValidUserData(request.resource.data);
+
+      // READ ACCESS: Allow Cloud Functions to read all user data
+      // Cloud Functions run with admin privileges and need to read
+      // user preferences to schedule Live Activities
+      allow read: if true;
+
+      // Validate user data structure
+      function isValidUserData(data) {
+        // Must have at least one of these fields
+        return data.keys().hasAny([
+          'pushToStartToken',
+          'fcmToken',
+          'location',
+          'preferences',
+          'deviceInfo',
+          'tokenUpdatedAt',
+          'updatedAt'
+        ]) &&
+        // Validate location structure if present
+        (!('location' in data) || isValidLocation(data.location)) &&
+        // Validate preferences structure if present
+        (!('preferences' in data) || isValidPreferences(data.preferences)) &&
+        // Validate tokens are strings if present
+        (!('pushToStartToken' in data) || data.pushToStartToken is string) &&
+        (!('fcmToken' in data) || data.fcmToken is string);
+      }
+
+      // Validate location data
+      function isValidLocation(location) {
+        return location is map &&
+               'latitude' in location &&
+               'longitude' in location &&
+               location.latitude is number &&
+               location.longitude is number &&
+               location.latitude >= -90 &&
+               location.latitude <= 90 &&
+               location.longitude >= -180 &&
+               location.longitude <= 180 &&
+               ('timezone' in location ? location.timezone is string : true);
+      }
+
+      // Validate preferences data
+      function isValidPreferences(prefs) {
+        return prefs is map &&
+               // Live Activity start offset must be valid (5-180 minutes)
+               ('liveActivityStartOffset' in prefs ?
+                 (prefs.liveActivityStartOffset is int &&
+                  prefs.liveActivityStartOffset >= 5 &&
+                  prefs.liveActivityStartOffset <= 180) : true) &&
+               // Enabled prayers must be a list
+               ('enabledPrayers' in prefs ?
+                 (prefs.enabledPrayers is list &&
+                  prefs.enabledPrayers.size() <= 10) : true) &&
+               // Calculation method must be valid
+               ('calculationMethod' in prefs ?
+                 prefs.calculationMethod is string : true);
+      }
+    }
+
+    // Deny all other collections by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

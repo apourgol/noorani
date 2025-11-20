@@ -140,22 +140,22 @@ private extension AzanCalendarView {
     }
     
     func createAzanTimesSection(for date: Date) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .center, spacing: 12) {
             VStack(alignment: .center, spacing: 4) {
                 Text("Prayer Times")
                     .font(.title3)
                     .bold()
-                    .padding(.horizontal)
-                
+                    .frame(maxWidth: .infinity, alignment: .center)
+
                 HStack(spacing: 6) {
                     Text(getDateString(from: date))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     if !hijriDate.isEmpty {
                         Text("•")
                             .foregroundColor(.secondary)
-                        
+
                         Text(hijriDate)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -163,16 +163,16 @@ private extension AzanCalendarView {
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            
-            // Two-column grid for Azan times
+
+            // Two-column grid for Azan times - centered
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
                 ],
-                spacing: 8
+                spacing: 10
             ) {
                 ForEach(prayerTimes, id: \.name) { time in
                     createAzanTimeCard(name: time.name, time: time.time, icon: time.icon)
@@ -216,32 +216,31 @@ private extension AzanCalendarView {
     }
     
     func createAzanTimeCard(name: String, time: String, icon: String) -> some View {
-        HStack(spacing: 8) {
-            // Icon
+        HStack(spacing: 10) {
+            // Icon - no circle background
             Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(.blue)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "#fab555"))
                 .frame(width: 24, height: 24)
-                .background(Color.blue.opacity(0.1))
-                .clipShape(Circle())
-            
-            // Prayer name and time
-            VStack(alignment: .leading, spacing: 0) {
+
+            // Prayer name and time - centered
+            VStack(alignment: .center, spacing: 2) {
                 Text(name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text(time)
                     .font(.caption)
                     .fontWeight(.medium)
-                
-                Text(time)
-                    .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal)
-        .padding(.vertical)
-        .background(Color(.accent.opacity(0.5)))
-        .cornerRadius(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(hex: "#fab555").opacity(0.15))
+        .cornerRadius(12)
     }
 }
 
@@ -308,22 +307,41 @@ private extension AzanCalendarView {
     }
     
     func parsePrayerTimes(from timings: [String: String]) -> [PrayerTime] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        
-        let timeFormatter = DateFormatter()
-        // Use timeFormat AppStorage value to set format
-        if timeFormat == "24" {
-            timeFormatter.dateFormat = "HH:mm"
-        } else {
-            timeFormatter.dateFormat = "h:mm a"
-        }
-        
         func formatTime(_ isoString: String) -> String {
-            if let date = formatter.date(from: isoString) {
-                return timeFormatter.string(from: date)
+            // Parse ISO8601 format (which includes timezone info)
+            let iso8601Formatter = ISO8601DateFormatter()
+            iso8601Formatter.formatOptions = [.withInternetDateTime]
+
+            guard let date = iso8601Formatter.date(from: isoString) else {
+                return isoString // Fallback to original string if parsing fails
             }
-            return isoString
+
+            // Extract the timezone from the ISO string to show the LOCAL time of the selected city
+            let timeZoneRegex = /([+-]\d{2}):(\d{2})$/
+            var selectedLocationTimeZone: TimeZone?
+
+            if let match = isoString.firstMatch(of: timeZoneRegex) {
+                let hours = Int(match.1) ?? 0
+                let minutes = Int(match.2) ?? 0
+                let totalSeconds = (abs(hours) * 3600) + (minutes * 60)
+                let offsetSeconds = match.1.hasPrefix("-") ? -totalSeconds : totalSeconds
+                selectedLocationTimeZone = TimeZone(secondsFromGMT: offsetSeconds)
+            }
+
+            // Format in the SELECTED LOCATION'S timezone (not user's local timezone)
+            // This shows the actual local prayer time for that city
+            let displayFormatter = DateFormatter()
+            displayFormatter.timeZone = selectedLocationTimeZone ?? TimeZone.current
+            displayFormatter.locale = Locale(identifier: "en_US_POSIX") // consistent formatting
+
+            // Use timeFormat AppStorage value to set format
+            if timeFormat == "24" {
+                displayFormatter.dateFormat = "HH:mm"
+            } else {
+                displayFormatter.dateFormat = "h:mm a"
+            }
+
+            return displayFormatter.string(from: date)
         }
         
         var times: [PrayerTime] = [

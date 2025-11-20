@@ -50,8 +50,9 @@ struct SurahDetailView: View {
                             BeautifulSurahHeaderView(surah: surah)
                                 .padding(.top, 5)
                             
-                            // 📖 Bismillah (for all surahs except At-Tawbah) - Using Uthman Taha
-                            if surah.id != 9 {
+                            // 📖 Bismillah (for all surahs except At-Tawbah and Al-Fatiha) - Using Uthman Taha
+                            // Al-Fatiha's Bismillah is Ayah #1, so it appears in the verses list
+                            if surah.id != 9 && surah.id != 1 {
                                 BismillahView(arabicFontSize: arabicFontSize)
                                     .padding(.horizontal, 20)
                             }
@@ -78,27 +79,13 @@ struct SurahDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .navigationTitle("")
-        .navigationBarBackButtonHidden(true)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarLeading) {
-                Button(action: { dismiss() }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .bold))
-                        Text("Back")
-                            .font(.system(size: 16, weight: .semibold))
-                    }
-                    .foregroundColor(.primary)
-                }
-            }
-        }
     }
     
     // MARK: - Fixed Top Controls (consistent with your Dua project style)
     private var topControlsView: some View {
         HStack {
             Spacer()
-            
+
             // Settings button with your Dua project style
             Button(action: {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
