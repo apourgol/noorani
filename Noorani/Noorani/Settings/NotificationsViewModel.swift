@@ -42,9 +42,9 @@ class NotificationsViewModel: ObservableObject {
     // Per-prayer notification settings (start notifications)
     @Published var fajrStartNotificationEnabled: Bool = true
     @Published var dhuhrStartNotificationEnabled: Bool = true
-    @Published var asrStartNotificationEnabled: Bool = true
+    @Published var asrStartNotificationEnabled: Bool = false  // OFF by default for Shia schedule
     @Published var maghribStartNotificationEnabled: Bool = true
-    @Published var ishaStartNotificationEnabled: Bool = true
+    @Published var ishaStartNotificationEnabled: Bool = false  // OFF by default for Shia schedule
 
     // Per-prayer notification offsets (start)
     @Published var fajrStartNotificationOffset: Int = 0
@@ -104,9 +104,9 @@ class NotificationsViewModel: ObservableObject {
         // Load per-prayer start notification settings
         fajrStartNotificationEnabled = UserDefaults.standard.object(forKey: "fajrStartNotificationEnabled") as? Bool ?? true
         dhuhrStartNotificationEnabled = UserDefaults.standard.object(forKey: "dhuhrStartNotificationEnabled") as? Bool ?? true
-        asrStartNotificationEnabled = UserDefaults.standard.object(forKey: "asrStartNotificationEnabled") as? Bool ?? true
+        asrStartNotificationEnabled = UserDefaults.standard.object(forKey: "asrStartNotificationEnabled") as? Bool ?? false  // OFF by default for Shia
         maghribStartNotificationEnabled = UserDefaults.standard.object(forKey: "maghribStartNotificationEnabled") as? Bool ?? true
-        ishaStartNotificationEnabled = UserDefaults.standard.object(forKey: "ishaStartNotificationEnabled") as? Bool ?? true
+        ishaStartNotificationEnabled = UserDefaults.standard.object(forKey: "ishaStartNotificationEnabled") as? Bool ?? false  // OFF by default for Shia
 
         // Load per-prayer start notification offsets
         fajrStartNotificationOffset = UserDefaults.standard.object(forKey: "fajrStartNotificationOffset") as? Int ?? 0

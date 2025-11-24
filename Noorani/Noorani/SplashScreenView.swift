@@ -78,14 +78,23 @@ struct SplashScreenView: View {
                 // If we have cached location, trigger fetch immediately
                 // (will be updated if fresh location comes in)
                 if prayerFetcher.currentLat != 0.0 && prayerFetcher.currentLng != 0.0 {
+                    // If we already have cached prayer times, allow immediate transition
+                    if !prayerFetcher.prayerTimes.isEmpty {
+                        print("✅ SplashScreen: Cached prayer times available, ready for immediate transition")
+                        canTransition = true
+                    }
+
+                    // Still fetch fresh data in background
                     Task {
                         await prayerFetcher.fetchPrayerTimes(
                             latitude: prayerFetcher.currentLat,
                             longitude: prayerFetcher.currentLng
                         )
-                        print("✅ SplashScreen: Prayer times preloaded")
-                        // Data is ready, allow transition
-                        canTransition = true
+                        print("✅ SplashScreen: Prayer times fetch completed")
+                        // Data is ready, allow transition if not already allowed
+                        if !canTransition {
+                            canTransition = true
+                        }
                     }
                 } else {
                     print("⏳ SplashScreen: No cached location, waiting for location...")

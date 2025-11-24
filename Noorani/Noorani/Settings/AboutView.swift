@@ -59,7 +59,7 @@ struct AboutView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(.nooraniTextPrimary)
 
-                                Text("Prayer Times. Holy Quran. Qibla Direction.")
+                                Text("Your Prayer Companion.")
                                     .font(.custom("Nunito-Regular", size: 16))
                                     .foregroundColor(.nooraniTextSecondary)
                             }

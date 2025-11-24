@@ -120,8 +120,10 @@ final class NotificationScheduler {
     private func shouldScheduleStartNotification(for prayer: String) -> Bool {
         let key = "\(prayer.lowercased())StartNotificationEnabled"
         switch prayer.lowercased() {
-        case "fajr", "dhuhr", "asr", "maghrib", "isha":
-            return UserDefaults.standard.object(forKey: key) as? Bool ?? true
+        case "fajr", "dhuhr", "maghrib":
+            return UserDefaults.standard.object(forKey: key) as? Bool ?? true  // ON by default
+        case "asr", "isha":
+            return UserDefaults.standard.object(forKey: key) as? Bool ?? false  // OFF by default for Shia schedule
         default:
             return UserDefaults.standard.object(forKey: key) as? Bool ?? false
         }

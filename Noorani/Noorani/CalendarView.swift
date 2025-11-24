@@ -15,7 +15,8 @@ struct AzanCalendarView: View {
     @State private var prayerTimes: [PrayerTime] = []
     @State private var hijriDate: String = ""
     @State private var isLoading: Bool = false
-    
+    @State private var isShowingCachedData: Bool = false  // Track if showing offline data
+
     // AppStorage values
     @AppStorage("showAsr") var showAsr: Bool = false // Hidden by default for Shia
     @AppStorage("showIsha") var showIsha: Bool = false // Hidden by default for Shia
@@ -38,12 +39,27 @@ struct AzanCalendarView: View {
             )
             .ignoresSafeArea(.all, edges: .vertical)
             VStack(spacing: 0) {
+                // Offline indicator banner
+                if isShowingCachedData {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.slash")
+                            .font(.caption)
+                        Text("Offline - Showing cached times")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.orange)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.15))
+                }
+
                 // Calendar
                 createCalendarView()
-                
+
                 Divider()
                     .padding(.vertical, 8)
-                
+
                 // Azan Times Section
                 if let selected = selectedDate {
                     if isLoading {
@@ -248,6 +264,7 @@ private extension AzanCalendarView {
 private extension AzanCalendarView {
     func configureCalendar(_ config: CalendarConfig) -> CalendarConfig {
         config
+            .firstWeekday(.sunday) // Start week on Sunday instead of Monday
             .monthsTopPadding(8)
             .monthsBottomPadding(16)
     }
@@ -268,42 +285,111 @@ private extension AzanCalendarView {
     }
     
     func fetchPrayerTimes(for date: Date) {
-        isLoading = true
-        prayerTimes = []
-        hijriDate = ""
-        
-        // Format date as DD-MM-YYYY for API
+        // Format date as DD-MM-YYYY for API/Cache
         let formatter = DateFormatter()
         formatter.dateFormat = "dd-MM-yyyy"
         let dateString = formatter.string(from: date)
-        
+
+        // Try to load cached prayer times first for instant display
+        // Don't show offline banner yet - wait to see if network fetch succeeds
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(dateString)"),
+           let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: cachedData) {
+            // Load cached data immediately
+            let cachedPrayerTimesDict = cache.toPrayerTimes()
+
+            // Convert cached times to formatted strings
+            var cachedTimings: [String: String] = [:]
+            let timeFormatter = DateFormatter()
+
+            // Use the current timezone for displaying cached times
+            // The Date objects already contain the correct absolute time
+            timeFormatter.timeZone = TimeZone.current
+
+            if timeFormat == "24" {
+                timeFormatter.dateFormat = "HH:mm"
+            } else {
+                timeFormatter.dateFormat = "h:mm a"
+            }
+
+            for (name, time) in cachedPrayerTimesDict {
+                cachedTimings[name] = timeFormatter.string(from: time)
+            }
+
+            prayerTimes = parsePrayerTimings(cachedTimings)
+            hijriDate = cache.hijriDate.isEmpty ? "" : cache.hijriDate
+            // Don't set isShowingCachedData yet - let network fetch determine this
+            isLoading = false
+
+            print("📂 Loaded cached prayer times for \(dateString)")
+        } else {
+            isLoading = true
+            prayerTimes = []
+            hijriDate = ""
+            isShowingCachedData = false
+        }
+
         // Build API URL using AppStorage values
         let urlString = "https://api.aladhan.com/v1/timings/\(dateString)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(selectedMethodId)&iso8601=true&midnightMode=1"
-        
+
         guard let url = URL(string: urlString) else {
             isLoading = false
             return
         }
-        
-        // Make API request
+
+        // Make API request (fetch fresh data in background, even if we have cache)
         URLSession.shared.dataTask(with: url) { data, response, error in
             DispatchQueue.main.async {
                 isLoading = false
-                
+
                 guard let data = data, error == nil else {
                     print("Error fetching prayer times: \(error?.localizedDescription ?? "Unknown error")")
+                    // Only show offline banner if we have cached data to display
+                    if !prayerTimes.isEmpty {
+                        isShowingCachedData = true
+                        print("📶 Network unavailable, showing cached data")
+                    }
                     return
                 }
-                
+
                 do {
                     let result = try JSONDecoder().decode(PrayerResponse.self, from: data)
                     prayerTimes = parsePrayerTimes(from: result.data.timings)
                     hijriDate = formatHijriDate(from: result.data.date.hijri)
+                    isShowingCachedData = false  // Now showing fresh data
+                    print("✅ Loaded fresh prayer times for \(dateString)")
                 } catch {
                     print("Error decoding prayer times: \(error)")
+                    // Show offline banner if we have cached data but decode failed
+                    if !prayerTimes.isEmpty {
+                        isShowingCachedData = true
+                    }
                 }
             }
         }.resume()
+    }
+
+    // Helper to parse timings when we already have formatted strings (from cache)
+    func parsePrayerTimings(_ timings: [String: String]) -> [PrayerTime] {
+        var times: [PrayerTime] = [
+            PrayerTime(name: "Fajr", time: timings["Fajr"] ?? "", icon: "sunrise.fill"),
+            PrayerTime(name: "Sunrise", time: timings["Sunrise"] ?? "", icon: "sun.horizon.fill"),
+            PrayerTime(name: "Dhuhr", time: timings["Dhuhr"] ?? "", icon: "sun.max.fill")
+        ]
+
+        if showAsr {
+            times.append(PrayerTime(name: "Asr", time: timings["Asr"] ?? "", icon: "sun.min.fill"))
+        }
+
+        times.append(PrayerTime(name: "Sunset", time: timings["Sunset"] ?? "", icon: "sunset.fill"))
+        times.append(PrayerTime(name: "Maghrib", time: timings["Maghrib"] ?? "", icon: "moon.fill"))
+
+        if showIsha {
+            times.append(PrayerTime(name: "Isha", time: timings["Isha"] ?? "", icon: "moon.stars.fill"))
+        }
+
+        times.append(PrayerTime(name: "Midnight", time: timings["Midnight"] ?? "", icon: "moon.zzz.fill"))
+
+        return times
     }
     
     func parsePrayerTimes(from timings: [String: String]) -> [PrayerTime] {

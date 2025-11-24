@@ -148,4 +148,8 @@ class AzanTimesViewModel: ObservableObject {
     var timings: [String: String] {
         return prayerTimesFetcher.timings
     }
+
+    var isShowingCachedData: Bool {
+        return prayerTimesFetcher.isShowingCachedData
+    }
 }
