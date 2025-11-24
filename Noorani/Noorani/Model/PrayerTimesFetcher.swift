@@ -97,6 +97,33 @@ struct PrayerCalculationMethodsResponse: Codable {
     let data: [String: PrayerCalculationMethod]
 }
 
+// MARK: - Cached Prayer Times for Offline Access
+struct CachedPrayerTimes: Codable {
+    let date: Date
+    let timings: [String: Double]  // Store as TimeInterval for Codable compatibility
+    let hijriDate: String
+    let readableDate: String
+    let latitude: Double
+    let longitude: Double
+    let methodId: Int
+
+    /// Convert to runtime prayer times dictionary
+    func toPrayerTimes() -> [String: Date] {
+        return timings.mapValues { Date(timeIntervalSince1970: $0) }
+    }
+
+    /// Create from current prayer data
+    init(date: Date, prayerTimes: [String: Date], hijriDate: String, readableDate: String, latitude: Double, longitude: Double, methodId: Int) {
+        self.date = date
+        self.timings = prayerTimes.mapValues { $0.timeIntervalSince1970 }
+        self.hijriDate = hijriDate
+        self.readableDate = readableDate
+        self.latitude = latitude
+        self.longitude = longitude
+        self.methodId = methodId
+    }
+}
+
 @MainActor
 class PrayerTimesFetcher: ObservableObject {
     // Published properties for UI updates
@@ -105,6 +132,7 @@ class PrayerTimesFetcher: ObservableObject {
     @Published var errorMessage: String = ""
     @Published var nextPrayerName: String = "Loading..."
     @Published var countdown: String = ""
+    @Published var isShowingCachedData: Bool = false  // Track if displaying offline/cached data
 
     // Core data properties
     @Published var timings: [String: String] = [:]
@@ -140,16 +168,155 @@ class PrayerTimesFetcher: ObservableObject {
         return formatter
     }()
 
+    private let readableDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long  // "November 24, 2025"
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
     private let allowedPrayerKeys: Set<String> = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Sunset", "Maghrib", "Isha", "Midnight"]
 
     init() {
         loadDefaultMethods()
         setSelectedMethod()
 
-        // Update next prayer if we have data
-        if !prayerTimes.isEmpty {
+        // Try to load cached prayer times for today
+        // Don't set isShowingCachedData yet - wait to see if network fetch succeeds
+        if loadCachedPrayerTimes(for: Date()) {
+            print("✅ Loaded cached prayer times from storage")
             updateNextPrayer()
         }
+        // Don't set isLoading here - it prevents fetches from starting!
+        // SplashScreenView handles the initial loading state
+    }
+
+    // MARK: - Cached Prayer Times Management
+
+    /// Save prayer times for a specific date to UserDefaults
+    private func cachePrayerTimes(for date: Date) {
+        let dateKey = apiDateFormatter.string(from: date)
+
+        let cache = CachedPrayerTimes(
+            date: date,
+            prayerTimes: prayerTimes,
+            hijriDate: hijriDate,
+            readableDate: readableDate,
+            latitude: currentLat,
+            longitude: currentLng,
+            methodId: selectedMethodId
+        )
+
+        if let encoded = try? JSONEncoder().encode(cache) {
+            UserDefaults.standard.set(encoded, forKey: "cachedPrayerTimes_\(dateKey)")
+
+            // Track which dates are cached
+            var cachedDates = UserDefaults.standard.stringArray(forKey: "cachedPrayerDates") ?? []
+            if !cachedDates.contains(dateKey) {
+                cachedDates.append(dateKey)
+                UserDefaults.standard.set(cachedDates, forKey: "cachedPrayerDates")
+            }
+
+            print("💾 Cached prayer times for \(dateKey)")
+        }
+    }
+
+    /// Load cached prayer times for a specific date
+    @discardableResult
+    func loadCachedPrayerTimes(for date: Date) -> Bool {
+        let dateKey = apiDateFormatter.string(from: date)
+
+        guard let data = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(dateKey)"),
+              let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: data) else {
+            print("📭 No cached prayer times found for \(dateKey)")
+            return false
+        }
+
+        // Validate cached location matches current location (within ~5km tolerance)
+        // This prevents loading wrong city's times after location changes
+        let latDiff = abs(cache.latitude - currentLat)
+        let lngDiff = abs(cache.longitude - currentLng)
+        let locationMatches = latDiff < 0.05 && lngDiff < 0.05  // ~5km tolerance
+
+        if !locationMatches && (currentLat != 0.0 || currentLng != 0.0) {
+            print("⚠️ Cached location mismatch - ignoring cached data")
+            return false
+        }
+
+        // Restore in-memory state
+        prayerTimes = cache.toPrayerTimes()
+        hijriDate = cache.hijriDate
+        readableDate = cache.readableDate
+
+        // Convert Date objects back to ISO8601 strings for UI consistency
+        // The UI layer (AzanTimesViewModel) expects ISO8601 format and handles time format preference
+        timings = prayerTimes.mapValues { date in
+            isoDateFormatter.string(from: date)
+        }
+
+        print("📂 Loaded cached prayer times for \(dateKey): \(prayerTimes.keys.sorted())")
+        return true
+    }
+
+    /// Cache multiple days of prayer times (for 21-day cache from monthly fetch)
+    private func cacheMultipleDays(_ monthPrayerTimes: [Date: [String: Date]]) {
+        var cachedDates: [String] = []
+
+        for (date, times) in monthPrayerTimes {
+            let dateKey = apiDateFormatter.string(from: date)
+
+            // For multi-day caching, create a cache entry with proper readable date format
+            let cache = CachedPrayerTimes(
+                date: date,
+                prayerTimes: times,
+                hijriDate: "", // Will be populated when actually displayed
+                readableDate: readableDateFormatter.string(from: date),  // Use readable format
+                latitude: currentLat,
+                longitude: currentLng,
+                methodId: selectedMethodId
+            )
+
+            if let encoded = try? JSONEncoder().encode(cache) {
+                UserDefaults.standard.set(encoded, forKey: "cachedPrayerTimes_\(dateKey)")
+                cachedDates.append(dateKey)
+            }
+        }
+
+        // Update the master list of cached dates
+        UserDefaults.standard.set(cachedDates, forKey: "cachedPrayerDates")
+        print("💾 Cached \(cachedDates.count) days of prayer times")
+    }
+
+    /// Check if cached prayer times exist for a specific date
+    func hasCachedPrayerTimes(for date: Date) -> Bool {
+        let dateKey = apiDateFormatter.string(from: date)
+        return UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(dateKey)") != nil
+    }
+
+    /// Get list of all cached dates
+    func getCachedDates() -> [String] {
+        return UserDefaults.standard.stringArray(forKey: "cachedPrayerDates") ?? []
+    }
+
+    /// Clear old cached prayer times (older than 30 days)
+    private func cleanOldCache() {
+        let calendar = Calendar.current
+        let thirtyDaysAgo = calendar.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+
+        let cachedDates = UserDefaults.standard.stringArray(forKey: "cachedPrayerDates") ?? []
+        var validDates: [String] = []
+
+        for dateKey in cachedDates {
+            if let date = apiDateFormatter.date(from: dateKey), date >= thirtyDaysAgo {
+                validDates.append(dateKey)
+            } else {
+                // Remove old cache entry
+                UserDefaults.standard.removeObject(forKey: "cachedPrayerTimes_\(dateKey)")
+                print("🗑️ Removed old cache for \(dateKey)")
+            }
+        }
+
+        UserDefaults.standard.set(validDates, forKey: "cachedPrayerDates")
     }
 
     // MARK: - Method Management
@@ -230,7 +397,20 @@ class PrayerTimesFetcher: ObservableObject {
         // Always clear cache for location changes to ensure fresh data
         lastFetchDate = ""
 
+        // CRITICAL: Clear ALL prayer times data to prevent timezone bugs
+        // When switching locations, both today's and tomorrow's times from old location are invalid
+        prayerTimes = [:]
+        timings = [:]
+        tomorrowPrayerTimes = [:]
+
+        // Clear next prayer state to show loading during fetch
+        nextPrayerName = "Loading..."
+        countdown = ""
+        timer?.invalidate()
+
         print("📍 Location updated, fetching fresh prayer times")
+
+        // Fetch prayer times for the new location
         await fetchPrayerTimesForLocation(latitude: latitude, longitude: longitude)
     }
 
@@ -277,8 +457,15 @@ class PrayerTimesFetcher: ObservableObject {
                 // Check for network errors
                 if let error = error {
                     print("❌ Network error: \(error.localizedDescription)")
-                    self.hasError = true
-                    self.errorMessage = "Network connection failed"
+                    // Only show error if we don't have cached data
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Network connection failed"
+                    } else {
+                        // We have cached data, mark as offline mode
+                        self.isShowingCachedData = true
+                        print("📶 Network unavailable, using cached data")
+                    }
                     return
                 }
 
@@ -286,13 +473,22 @@ class PrayerTimesFetcher: ObservableObject {
                 if let httpResponse = response as? HTTPURLResponse,
                    httpResponse.statusCode != 200 {
                     print("❌ HTTP Error: \(httpResponse.statusCode)")
-                    self.hasError = true
-                    self.errorMessage = "Server error (\(httpResponse.statusCode))"
+                    // Only show error if we don't have cached data
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Server error (\(httpResponse.statusCode))"
+                    } else {
+                        self.isShowingCachedData = true
+                        print("📶 Server error, using cached data")
+                    }
                     return
                 }
 
                 guard let data = data else {
                     print("❌ No data received")
+                    if !self.prayerTimes.isEmpty {
+                        self.isShowingCachedData = true
+                    }
                     return
                 }
 
@@ -313,12 +509,32 @@ class PrayerTimesFetcher: ObservableObject {
                     self.currentLat = latitude
                     self.currentLng = longitude
 
-                    self.updateNextPrayer()
+                    // Cache the prayer times for offline access
+                    self.cachePrayerTimes(for: Date())
+
+                    // Mark that we're now showing fresh data, not cached
+                    self.isShowingCachedData = false
+
                     print("✅ Prayer times updated successfully for new location")
+
+                    // CRITICAL: Fetch tomorrow's times BEFORE updateNextPrayer()
+                    // This ensures we have both days when determining next prayer
+                    // Prevents showing wrong prayer when switching timezones
+                    await self.fetchTomorrowPrayerTimesSync()
+
+                    // Now update next prayer with complete data (today + tomorrow)
+                    self.updateNextPrayer()
+
+                    // Schedule notifications after fetching prayer times
+                    self.scheduleNotificationsIfEnabled()
                 } catch {
                     print("❌ Decoding error: \(error)")
-                    self.hasError = true
-                    self.errorMessage = "Data parsing error"
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Data parsing error"
+                    } else {
+                        self.isShowingCachedData = true
+                    }
                 }
             }
         }.resume()
@@ -391,8 +607,15 @@ class PrayerTimesFetcher: ObservableObject {
                 // Check for network errors
                 if let error = error {
                     print("❌ Network error: \(error.localizedDescription)")
-                    self.hasError = true
-                    self.errorMessage = "Network connection failed"
+                    // Only show error if we don't have cached data
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Network connection failed"
+                    } else {
+                        // We have cached data, mark as offline mode
+                        self.isShowingCachedData = true
+                        print("📶 Network unavailable, using cached data")
+                    }
                     return
                 }
 
@@ -400,13 +623,22 @@ class PrayerTimesFetcher: ObservableObject {
                 if let httpResponse = response as? HTTPURLResponse,
                    httpResponse.statusCode != 200 {
                     print("❌ HTTP Error: \(httpResponse.statusCode)")
-                    self.hasError = true
-                    self.errorMessage = "Server error (\(httpResponse.statusCode))"
+                    // Only show error if we don't have cached data
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Server error (\(httpResponse.statusCode))"
+                    } else {
+                        self.isShowingCachedData = true
+                        print("📶 Server error, using cached data")
+                    }
                     return
                 }
 
                 guard let data = data else {
                     print("❌ No data received")
+                    if !self.prayerTimes.isEmpty {
+                        self.isShowingCachedData = true
+                    }
                     return
                 }
 
@@ -427,16 +659,190 @@ class PrayerTimesFetcher: ObservableObject {
                     self.currentLat = latitude
                     self.currentLng = longitude
 
+                    // Cache the prayer times for offline access
+                    self.cachePrayerTimes(for: Date())
+
+                    // Mark that we're now showing fresh data, not cached
+                    self.isShowingCachedData = false
+
                     self.updateNextPrayer()
                     print("✅ Prayer times updated successfully")
+
+                    // Schedule notifications after fetching prayer times
+                    self.scheduleNotificationsIfEnabled()
                 } catch {
                     print("❌ Decoding error: \(error)")
-                    self.hasError = true
-                    self.errorMessage = "Data parsing error"
+                    if self.prayerTimes.isEmpty {
+                        self.hasError = true
+                        self.errorMessage = "Data parsing error"
+                    } else {
+                        self.isShowingCachedData = true
+                    }
                 }
             }
         }.resume()
     }
+
+    // MARK: - Notification Scheduling
+    private func scheduleNotificationsIfEnabled() {
+        // WIDGETS/LIVE ACTIVITIES DISABLED - saveToSharedContainer() commented out
+        // saveToSharedContainer()
+
+        // Check if notifications are enabled before scheduling
+        guard UserDefaults.standard.bool(forKey: "notificationsEnabled") else {
+            print("📵 Notifications disabled, skipping notification scheduling")
+            return
+        }
+
+        print("🔔 Scheduling prayer notifications...")
+
+        // LIVE ACTIVITIES DISABLED
+        // scheduleLiveActivitiesIfEnabled()
+
+        // Check if we should fetch and schedule 30 days of notifications
+        let lastScheduledDate = UserDefaults.standard.double(forKey: "lastScheduledNotificationDate")
+        let daysSinceLastSchedule = (Date().timeIntervalSince1970 - lastScheduledDate) / 86400
+
+        // Defer heavy notification scheduling to avoid blocking UI
+        // This ensures prayer times appear instantly on first launch
+        if lastScheduledDate == 0 || daysSinceLastSchedule > 7 {
+            print("📅 Deferring 30-day notification fetch to background...")
+
+            // Delay 5 seconds to ensure UI is fully rendered
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
+                guard let self = self else { return }
+
+                Task(priority: .utility) {
+                    print("📅 Background: Fetching 30 days of prayer times...")
+                    let monthPrayerTimes = await self.fetchMonthOfPrayerTimes()
+
+                    if !monthPrayerTimes.isEmpty {
+                        // Cache the 21 days (3 weeks) of prayer times for offline access
+                        await MainActor.run {
+                            self.cacheMultipleDays(monthPrayerTimes)
+                            self.cleanOldCache()
+                        }
+
+                        NotificationScheduler.shared.scheduleMonthOfNotifications(monthPrayerTimes: monthPrayerTimes)
+                        print("✅ Background: 30-day notifications scheduled and cached")
+                    } else {
+                        // Fallback to single day scheduling
+                        NotificationScheduler.shared.scheduleAllNotifications(
+                            prayerTimes: self.prayerTimes,
+                            tomorrowPrayerTimes: self.tomorrowPrayerTimes
+                        )
+                    }
+                }
+            }
+        } else {
+            // Use existing single day scheduling for regular updates (fast)
+            // Run in background to avoid any UI blocking
+            Task(priority: .utility) {
+                NotificationScheduler.shared.scheduleAllNotifications(
+                    prayerTimes: prayerTimes,
+                    tomorrowPrayerTimes: tomorrowPrayerTimes
+                )
+            }
+        }
+    }
+
+    // LIVE ACTIVITIES DISABLED
+    /*
+    private func scheduleLiveActivitiesIfEnabled() {
+        guard UserDefaults.standard.bool(forKey: "liveActivitiesEnabled") else {
+            print("📵 Live Activities disabled, skipping scheduling")
+            return
+        }
+
+        if #available(iOS 16.1, *) {
+            print("⏰ Scheduling Live Activities...")
+            LiveActivityManager.shared.scheduleAllLiveActivities(
+                prayerTimes: prayerTimes,
+                tomorrowPrayerTimes: tomorrowPrayerTimes
+            )
+        }
+    }
+    */
+
+    // WIDGETS/LIVE ACTIVITIES DISABLED - SharedDataManager commented out
+    /*
+    /// Save prayer times and preferences to shared App Group container for widget access
+    private func saveToSharedContainer() {
+        // Save prayer times
+        SharedDataManager.shared.savePrayerTimes(prayerTimes)
+
+        // Save next prayer info
+        if !nextPrayerName.isEmpty && nextPrayerName != "Loading...",
+           let nextTime = prayerTimes[nextPrayerName] {
+            let icon = getPrayerIcon(for: nextPrayerName)
+            SharedDataManager.shared.saveNextPrayerInfo(
+                name: nextPrayerName,
+                time: nextTime,
+                icon: icon
+            )
+        }
+
+        // LIVE ACTIVITIES DISABLED - Comment out Live Activity preference saving
+        // Save user preferences
+        SharedDataManager.shared.saveUserPreferences(
+            liveActivitiesEnabled: UserDefaults.standard.bool(forKey: "liveActivitiesEnabled"),
+            liveActivityStartOffset: UserDefaults.standard.object(forKey: "liveActivityStartOffset") as? Int ?? 30,
+            fajrEnabled: UserDefaults.standard.object(forKey: "fajrNotification") as? Bool ?? true,
+            dhuhrEnabled: UserDefaults.standard.object(forKey: "dhuhrNotification") as? Bool ?? true,
+            asrEnabled: UserDefaults.standard.object(forKey: "asrNotification") as? Bool ?? true,
+            maghribEnabled: UserDefaults.standard.object(forKey: "maghribNotification") as? Bool ?? true,
+            ishaEnabled: UserDefaults.standard.object(forKey: "ishaNotification") as? Bool ?? true
+        )
+
+        // Save location
+        if currentLat != 0 && currentLng != 0 {
+            SharedDataManager.shared.saveLocation(
+                latitude: currentLat,
+                longitude: currentLng,
+                cityName: nil // Can be enhanced to include city name
+            )
+        }
+
+        print("✅ Saved prayer data to shared container")
+    }
+    */
+
+    /// Get SF Symbol icon for a prayer
+    private func getPrayerIcon(for prayerName: String) -> String {
+        switch prayerName {
+        case "Fajr":
+            return "sunrise.fill"
+        case "Sunrise":
+            return "sun.horizon.fill"
+        case "Dhuhr":
+            return "sun.max.fill"
+        case "Asr":
+            return "sun.min.fill"
+        case "Sunset":
+            return "sunset.fill"
+        case "Maghrib":
+            return "moon.fill"
+        case "Isha":
+            return "moon.stars.fill"
+        case "Midnight":
+            return "moon.zzz.fill"
+        default:
+            return "clock.fill"
+        }
+    }
+
+    /// Force reschedule all notifications (call when settings change)
+    func rescheduleNotifications() {
+        scheduleNotificationsIfEnabled()
+    }
+
+    // LIVE ACTIVITIES DISABLED
+    /*
+    /// Force reschedule Live Activities (call when settings change)
+    func rescheduleLiveActivities() {
+        scheduleLiveActivitiesIfEnabled()
+    }
+    */
 
     private func processPrayerResponse(_ response: PrayerResponse) -> (timings: [String: String], readableDate: String, hijriDate: String, prayerTimes: [String: Date]) {
         var resultPrayerTimes: [String: Date] = [:]
@@ -494,30 +900,43 @@ class PrayerTimesFetcher: ObservableObject {
             startCountdown(to: next.value)
             print("⏰ Next prayer: \(next.key) at \(next.value)")
         } else if !prayerTimes.isEmpty {
-            // No more visible prayers today - check for tomorrow's Fajr (if visible)
-            if isVisible(prayer: "Fajr") {
-                if let tomorrowFajr = tomorrowPrayerTimes["Fajr"] {
-                    // We have tomorrow's Fajr time
-                    nextPrayerName = "Fajr"
-                    nextPrayerTime = tomorrowFajr
-                    startCountdown(to: tomorrowFajr)
-                    print("🌅 Next prayer: Tomorrow's Fajr at \(tomorrowFajr)")
-                } else {
-                    // Need to fetch tomorrow's prayer times
-                    nextPrayerName = "Fajr"
-                    nextPrayerTime = nil
-                    countdown = "Loading..."
-                    timer?.invalidate()
-                    fetchTomorrowPrayerTimes()
-                    print("🌅 Need to fetch tomorrow's Fajr")
+            // No more visible prayers today - check tomorrow's times for ANY upcoming prayer
+            let upcomingTomorrowPrayers = tomorrowPrayerTimes
+                .filter { prayerName, prayerTime in
+                    let isUpcoming = prayerTime > now
+                    let visible = isVisible(prayer: prayerName)
+                    return isUpcoming && visible
                 }
+                .sorted(by: { $0.value < $1.value })
+
+            if let nextTomorrow = upcomingTomorrowPrayers.first {
+                // Found an upcoming prayer in tomorrow's data
+                nextPrayerName = nextTomorrow.key
+                nextPrayerTime = nextTomorrow.value
+                startCountdown(to: nextTomorrow.value)
+                print("🌅 Next prayer: Tomorrow's \(nextTomorrow.key) at \(nextTomorrow.value)")
+            } else if tomorrowPrayerTimes.isEmpty && isVisible(prayer: "Fajr") {
+                // No tomorrow data yet and Fajr is visible - fetch it
+                nextPrayerName = "Fajr"
+                nextPrayerTime = nil
+                countdown = "Loading..."
+                timer?.invalidate()
+                fetchTomorrowPrayerTimes()
+                print("🌅 Need to fetch tomorrow's prayer times")
             } else {
-                // Fajr is not visible, show "No more prayers"
+                // Either:
+                // 1. We have tomorrow's data but all prayers are in the past (timezone issue)
+                // 2. Fajr is not visible
+                // Clear stale data and show placeholder
+                if !tomorrowPrayerTimes.isEmpty {
+                    print("⚠️ Tomorrow's prayers are all in the past, clearing stale data")
+                    tomorrowPrayerTimes = [:]
+                }
                 nextPrayerName = "—"
                 nextPrayerTime = nil
                 countdown = "—"
                 timer?.invalidate()
-                print("😴 No more visible prayers today")
+                print("😴 No more visible upcoming prayers")
             }
         } else {
             // No prayer times loaded yet
@@ -562,17 +981,87 @@ class PrayerTimesFetcher: ObservableObject {
         }
     }
 
+    /// Synchronous version of fetchTomorrowPrayerTimes for location switches
+    private func fetchTomorrowPrayerTimesSync() async {
+        guard let method = selectedMethod else { return }
+        guard currentLat != 0.0 && currentLng != 0.0 else { return }
+
+        let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
+        let tomorrowString = apiDateFormatter.string(from: tomorrow)
+
+        // Check cache first with location validation
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(tomorrowString)"),
+           let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: cachedData) {
+
+            let latDiff = abs(cache.latitude - currentLat)
+            let lngDiff = abs(cache.longitude - currentLng)
+            let locationMatches = latDiff < 0.05 && lngDiff < 0.05
+
+            if locationMatches {
+                tomorrowPrayerTimes = cache.toPrayerTimes()
+                print("📂 Loaded tomorrow's prayer times from cache: \(tomorrowString)")
+                return
+            }
+        }
+
+        // Fetch from API
+        let urlString = "https://api.aladhan.com/v1/timings/\(tomorrowString)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(method.id)&iso8601=true&midnightMode=1"
+        guard let url = URL(string: urlString) else { return }
+
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(PrayerResponse.self, from: data)
+
+            var tomorrowTimes: [String: Date] = [:]
+            for (name, timeString) in response.data.timings {
+                guard self.allowedPrayerKeys.contains(name) else { continue }
+                if let prayerDate = self.isoDateFormatter.date(from: timeString) {
+                    tomorrowTimes[name] = prayerDate
+                }
+            }
+
+            self.tomorrowPrayerTimes = tomorrowTimes
+            print("🌅 Fetched tomorrow's prayer times: \(tomorrowString)")
+        } catch {
+            print("❌ Error fetching tomorrow's prayer times: \(error)")
+        }
+    }
+
     private func fetchTomorrowPrayerTimes() {
         guard let method = selectedMethod else { return }
         guard currentLat != 0.0 && currentLng != 0.0 else { return }
 
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date()) ?? Date()
         let tomorrowString = apiDateFormatter.string(from: tomorrow)
+
+        // CRITICAL FIX: Check cache first before attempting network fetch
+        // This prevents "Loading..." state when offline after midnight
+        // BUT: Validate location matches to prevent wrong city's times when switching locations
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(tomorrowString)"),
+           let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: cachedData) {
+
+            // Validate cached location matches current location (within ~5km tolerance)
+            let latDiff = abs(cache.latitude - currentLat)
+            let lngDiff = abs(cache.longitude - currentLng)
+            let locationMatches = latDiff < 0.05 && lngDiff < 0.05  // ~5km tolerance
+
+            if locationMatches {
+                // Load tomorrow's prayer times from cache (location validated)
+                tomorrowPrayerTimes = cache.toPrayerTimes()
+                updateNextPrayer()
+                print("📂 Loaded tomorrow's prayer times from cache: \(tomorrowString)")
+                return
+            } else {
+                print("⚠️ Cached location mismatch - will fetch fresh data for new location")
+            }
+        }
+
+        // If not in cache, try fetching from network
         let urlString = "https://api.aladhan.com/v1/timings/\(tomorrowString)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(method.id)&iso8601=true&midnightMode=1"
 
         guard let url = URL(string: urlString) else { return }
 
-        print("🌅 Fetching tomorrow's prayer times: \(tomorrowString)")
+        print("🌅 Fetching tomorrow's prayer times from API: \(tomorrowString)")
 
         var request = URLRequest(url: url)
         request.timeoutInterval = 15.0
@@ -583,6 +1072,7 @@ class PrayerTimesFetcher: ObservableObject {
 
             if let error = error {
                 print("❌ Error fetching tomorrow's prayer times: \(error)")
+                print("💡 Tomorrow's times not in cache and network unavailable")
                 return
             }
 
@@ -608,6 +1098,163 @@ class PrayerTimesFetcher: ObservableObject {
                 print("❌ Error decoding tomorrow's prayer times: \(error)")
             }
         }.resume()
+    }
+
+    // MARK: - 30-Day Prayer Times for Extended Notifications
+
+    /// Fetch 30 days of prayer times for extended notification scheduling
+    func fetchMonthOfPrayerTimes() async -> [Date: [String: Date]] {
+        guard let method = selectedMethod else {
+            print("❌ No calculation method selected for month fetch")
+            return [:]
+        }
+        guard currentLat != 0.0 && currentLng != 0.0 else {
+            print("❌ No location for month fetch")
+            return [:]
+        }
+
+        let calendar = Calendar.current
+        let today = Date()
+        let year = calendar.component(.year, from: today)
+        let month = calendar.component(.month, from: today)
+
+        // Fetch current month from Aladhan Calendar API
+        let urlString = "https://api.aladhan.com/v1/calendar/\(year)/\(month)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(method.id)&iso8601=true&midnightMode=1"
+
+        guard let url = URL(string: urlString) else {
+            print("❌ Invalid calendar URL")
+            return [:]
+        }
+
+        print("📅 Fetching month of prayer times: \(month)/\(year)")
+
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 30.0
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                print("❌ Calendar API error")
+                return [:]
+            }
+
+            let calendarResponse = try JSONDecoder().decode(CalendarPrayerResponse.self, from: data)
+
+            var monthPrayerTimes: [Date: [String: Date]] = [:]
+
+            for dayData in calendarResponse.data {
+                // Parse the date for this day
+                let dateComponents = dayData.date.gregorian
+                guard let dayNum = Int(dateComponents.day),
+                      let yearNum = Int(dateComponents.year) else {
+                    continue
+                }
+                let monthNum = dateComponents.month.number
+
+                var dateComps = DateComponents()
+                dateComps.year = yearNum
+                dateComps.month = monthNum
+                dateComps.day = dayNum
+                guard let dayDate = calendar.date(from: dateComps) else { continue }
+
+                // Only include future dates
+                guard dayDate >= calendar.startOfDay(for: today) else { continue }
+
+                // Parse prayer times for this day
+                var dayPrayerTimes: [String: Date] = [:]
+                for (name, timeString) in dayData.timings {
+                    guard allowedPrayerKeys.contains(name) else { continue }
+                    if let prayerDate = isoDateFormatter.date(from: timeString) {
+                        dayPrayerTimes[name] = prayerDate
+                    }
+                }
+
+                monthPrayerTimes[dayDate] = dayPrayerTimes
+            }
+
+            // If we need more days, fetch next month too
+            if monthPrayerTimes.count < 30 {
+                let nextMonthTimes = await fetchNextMonthPrayerTimes(year: year, month: month)
+                monthPrayerTimes.merge(nextMonthTimes) { current, _ in current }
+            }
+
+            print("✅ Fetched \(monthPrayerTimes.count) days of prayer times")
+            return monthPrayerTimes
+
+        } catch {
+            print("❌ Error fetching month prayer times: \(error)")
+            return [:]
+        }
+    }
+
+    private func fetchNextMonthPrayerTimes(year: Int, month: Int) async -> [Date: [String: Date]] {
+        guard let method = selectedMethod else { return [:] }
+
+        let calendar = Calendar.current
+        var nextMonth = month + 1
+        var nextYear = year
+        if nextMonth > 12 {
+            nextMonth = 1
+            nextYear += 1
+        }
+
+        let urlString = "https://api.aladhan.com/v1/calendar/\(nextYear)/\(nextMonth)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(method.id)&iso8601=true&midnightMode=1"
+
+        guard let url = URL(string: urlString) else { return [:] }
+
+        print("📅 Fetching next month: \(nextMonth)/\(nextYear)")
+
+        do {
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 30.0
+
+            let (data, response) = try await URLSession.shared.data(for: request)
+
+            guard let httpResponse = response as? HTTPURLResponse,
+                  httpResponse.statusCode == 200 else {
+                return [:]
+            }
+
+            let calendarResponse = try JSONDecoder().decode(CalendarPrayerResponse.self, from: data)
+
+            var monthPrayerTimes: [Date: [String: Date]] = [:]
+            let today = Date()
+
+            for dayData in calendarResponse.data {
+                let dateComponents = dayData.date.gregorian
+                guard let dayNum = Int(dateComponents.day),
+                      let yearNum = Int(dateComponents.year) else {
+                    continue
+                }
+                let monthNum = dateComponents.month.number
+
+                var dateComps = DateComponents()
+                dateComps.year = yearNum
+                dateComps.month = monthNum
+                dateComps.day = dayNum
+                guard let dayDate = calendar.date(from: dateComps) else { continue }
+
+                // Only include future dates
+                guard dayDate > today else { continue }
+
+                var dayPrayerTimes: [String: Date] = [:]
+                for (name, timeString) in dayData.timings {
+                    guard allowedPrayerKeys.contains(name) else { continue }
+                    if let prayerDate = isoDateFormatter.date(from: timeString) {
+                        dayPrayerTimes[name] = prayerDate
+                    }
+                }
+
+                monthPrayerTimes[dayDate] = dayPrayerTimes
+            }
+
+            return monthPrayerTimes
+        } catch {
+            print("❌ Error fetching next month: \(error)")
+            return [:]
+        }
     }
 
     private func format(_ interval: TimeInterval) -> String {

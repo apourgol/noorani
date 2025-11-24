@@ -59,7 +59,7 @@ struct AboutView: View {
                                     .fontWeight(.bold)
                                     .foregroundColor(.nooraniTextPrimary)
 
-                                Text("Prayer Times. Holy Quran. Qibla Direction.")
+                                Text("Your Prayer Companion.")
                                     .font(.custom("Nunito-Regular", size: 16))
                                     .foregroundColor(.nooraniTextSecondary)
                             }
@@ -171,14 +171,8 @@ struct AboutView: View {
                                                 title: "Makkah icons by rimsha-ibrar",
                                                 url: "https://www.flaticon.com/free-icons/makkah"
                                             )
-                                            
                                             AttributionLinkRow(
-                                                title: "Islamic icons by Atif Arshad",
-                                                url: "https://www.flaticon.com/free-icons/islamic"
-                                            )
-                                            
-                                            AttributionLinkRow(
-                                                title: "Quran icon by VectorPortal",
+                                                title: "Icon by VectorPortal",
                                                 url: "https://www.freepik.com/icon/prophet_10031075#fromView=search&page=1&position=28&uuid=3edb6063-725b-4da0-82be-676f18042121"
                                             )
                                         }

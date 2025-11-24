@@ -27,10 +27,26 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		B5F4B0272ECAEB62001A67D5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		ADCE47BA2E77A2A8004F5972 /* Noorani.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Noorani.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADCE47CB2E77A2AA004F5972 /* NooraniTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NooraniTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADCE47D52E77A2AA004F5972 /* NooraniUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NooraniUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B5F4B0122ECAEB61001A67D5 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		B5F4B0142ECAEB61001A67D5 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		B5F4B02E2ECAED40001A67D5 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/ActivityKit.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -96,6 +112,7 @@
 				ADCE47BC2E77A2A8004F5972 /* Noorani */,
 				ADCE47CE2E77A2AA004F5972 /* NooraniTests */,
 				ADCE47D82E77A2AA004F5972 /* NooraniUITests */,
+				B5F4AFFE2ECAD928001A67D5 /* Frameworks */,
 				ADCE47BB2E77A2A8004F5972 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -110,6 +127,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		B5F4AFFE2ECAD928001A67D5 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B5F4B02E2ECAED40001A67D5 /* ActivityKit.framework */,
+				B5F4B0122ECAEB61001A67D5 /* WidgetKit.framework */,
+				B5F4B0142ECAEB61001A67D5 /* SwiftUI.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -120,6 +147,7 @@
 				ADCE47B62E77A2A8004F5972 /* Sources */,
 				ADCE47B72E77A2A8004F5972 /* Frameworks */,
 				ADCE47B82E77A2A8004F5972 /* Resources */,
+				B5F4B0272ECAEB62001A67D5 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
@@ -189,7 +217,7 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
-				LastSwiftUpdateCheck = 1620;
+				LastSwiftUpdateCheck = 2610;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
 					ADCE47B92E77A2A8004F5972 = {
@@ -417,7 +445,7 @@
 				CODE_SIGN_ENTITLEMENTS = Noorani/Noorani.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Noorani/Preview Content\"";
 				DEVELOPMENT_TEAM = 8C63825C8B;
@@ -427,7 +455,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Noorani/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "‌نورانی";
+				INFOPLIST_KEY_CFBundleDisplayName = Noorani;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
@@ -448,13 +476,14 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -470,7 +499,7 @@
 				CODE_SIGN_ENTITLEMENTS = Noorani/Noorani.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 4;
+				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_ASSET_PATHS = "\"Noorani/Preview Content\"";
 				DEVELOPMENT_TEAM = 8C63825C8B;
@@ -480,7 +509,7 @@
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Noorani/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = "‌نورانی";
+				INFOPLIST_KEY_CFBundleDisplayName = Noorani;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
@@ -501,13 +530,14 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.0;
+				MARKETING_VERSION = 1.2;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = YES;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";

@@ -23,10 +23,48 @@ struct AzanTimesView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            if viewModel.isLoading || viewModel.timings.isEmpty {
+        VStack(alignment: .leading, spacing: 0) {
+            // Offline indicator banner
+            if viewModel.isShowingCachedData {
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi.slash")
+                        .font(.caption)
+                    Text("Offline - Showing cached times")
+                        .font(.caption)
+                        .fontWeight(.medium)
+                }
+                .foregroundColor(.orange)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background(Color.orange.opacity(0.15))
+            }
+
+            if viewModel.isLoading {
                 Spacer()
                 ProgressView()
+                    .scaleEffect(1.2)
+                Text("Loading prayer times...")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .padding(.top, 8)
+                Spacer()
+            } else if viewModel.timings.isEmpty {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "location.slash")
+                        .font(.system(size: 50))
+                        .foregroundColor(.secondary)
+
+                    Text("No Prayer Times Available")
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    Text("Please check your location settings or internet connection and pull down to refresh.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 32)
+                }
                 Spacer()
             } else {
                 ScrollView {

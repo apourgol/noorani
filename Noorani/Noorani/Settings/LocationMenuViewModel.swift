@@ -32,6 +32,10 @@ class LocationMenuViewModel: ObservableObject {
     
     // MARK: - Public Methods
     func requestCurrentLocation(onCompletion: @escaping () -> Void) {
+        // Set flag to indicate "current location" mode is active
+        // This ensures location refreshes automatically when app opens
+        UserDefaults.standard.set(true, forKey: "useCurrentLocation")
+
         locationManager.requestLocation {
             onCompletion()
         }
@@ -40,7 +44,10 @@ class LocationMenuViewModel: ObservableObject {
     func selectCity(_ city: String, onCompletion: @escaping () -> Void) {
         // Save the selected city to UserDefaults
         UserDefaults.standard.set(city, forKey: "currentCity")
-        
+
+        // Disable "current location" mode since user manually selected a city
+        UserDefaults.standard.set(false, forKey: "useCurrentLocation")
+
         // Get coordinates for the selected city
         locationManager.getCoordinates(for: city) { coordinate in
             if let coordinate = coordinate {

@@ -15,7 +15,8 @@ struct AzanCalendarView: View {
     @State private var prayerTimes: [PrayerTime] = []
     @State private var hijriDate: String = ""
     @State private var isLoading: Bool = false
-    
+    @State private var isShowingCachedData: Bool = false  // Track if showing offline data
+
     // AppStorage values
     @AppStorage("showAsr") var showAsr: Bool = false // Hidden by default for Shia
     @AppStorage("showIsha") var showIsha: Bool = false // Hidden by default for Shia
@@ -38,12 +39,27 @@ struct AzanCalendarView: View {
             )
             .ignoresSafeArea(.all, edges: .vertical)
             VStack(spacing: 0) {
+                // Offline indicator banner
+                if isShowingCachedData {
+                    HStack(spacing: 8) {
+                        Image(systemName: "wifi.slash")
+                            .font(.caption)
+                        Text("Offline - Showing cached times")
+                            .font(.caption)
+                            .fontWeight(.medium)
+                    }
+                    .foregroundColor(.orange)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 6)
+                    .background(Color.orange.opacity(0.15))
+                }
+
                 // Calendar
                 createCalendarView()
-                
+
                 Divider()
                     .padding(.vertical, 8)
-                
+
                 // Azan Times Section
                 if let selected = selectedDate {
                     if isLoading {
@@ -140,22 +156,22 @@ private extension AzanCalendarView {
     }
     
     func createAzanTimesSection(for date: Date) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .center, spacing: 12) {
             VStack(alignment: .center, spacing: 4) {
                 Text("Prayer Times")
                     .font(.title3)
                     .bold()
-                    .padding(.horizontal)
-                
+                    .frame(maxWidth: .infinity, alignment: .center)
+
                 HStack(spacing: 6) {
                     Text(getDateString(from: date))
                         .font(.subheadline)
                         .foregroundColor(.secondary)
-                    
+
                     if !hijriDate.isEmpty {
                         Text("•")
                             .foregroundColor(.secondary)
-                        
+
                         Text(hijriDate)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -163,16 +179,16 @@ private extension AzanCalendarView {
                 }
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
-                .padding(.horizontal)
+                .frame(maxWidth: .infinity, alignment: .center)
             }
-            
-            // Two-column grid for Azan times
+
+            // Two-column grid for Azan times - centered
             LazyVGrid(
                 columns: [
-                    GridItem(.flexible(), spacing: 12),
-                    GridItem(.flexible(), spacing: 12)
+                    GridItem(.flexible(), spacing: 10),
+                    GridItem(.flexible(), spacing: 10)
                 ],
-                spacing: 8
+                spacing: 10
             ) {
                 ForEach(prayerTimes, id: \.name) { time in
                     createAzanTimeCard(name: time.name, time: time.time, icon: time.icon)
@@ -216,32 +232,31 @@ private extension AzanCalendarView {
     }
     
     func createAzanTimeCard(name: String, time: String, icon: String) -> some View {
-        HStack(spacing: 8) {
-            // Icon
+        HStack(spacing: 10) {
+            // Icon - no circle background
             Image(systemName: icon)
-                .font(.caption)
-                .foregroundColor(.blue)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundColor(Color(hex: "#fab555"))
                 .frame(width: 24, height: 24)
-                .background(Color.blue.opacity(0.1))
-                .clipShape(Circle())
-            
-            // Prayer name and time
-            VStack(alignment: .leading, spacing: 0) {
+
+            // Prayer name and time - centered
+            VStack(alignment: .center, spacing: 2) {
                 Text(name)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text(time)
                     .font(.caption)
                     .fontWeight(.medium)
-                
-                Text(time)
-                    .font(.caption2)
                     .foregroundColor(.secondary)
             }
-            
-            Spacer()
+            .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal)
-        .padding(.vertical)
-        .background(Color(.accent.opacity(0.5)))
-        .cornerRadius(16)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color(hex: "#fab555").opacity(0.15))
+        .cornerRadius(12)
     }
 }
 
@@ -249,6 +264,7 @@ private extension AzanCalendarView {
 private extension AzanCalendarView {
     func configureCalendar(_ config: CalendarConfig) -> CalendarConfig {
         config
+            .firstWeekday(.sunday) // Start week on Sunday instead of Monday
             .monthsTopPadding(8)
             .monthsBottomPadding(16)
     }
@@ -269,61 +285,149 @@ private extension AzanCalendarView {
     }
     
     func fetchPrayerTimes(for date: Date) {
-        isLoading = true
-        prayerTimes = []
-        hijriDate = ""
-        
-        // Format date as DD-MM-YYYY for API
+        // Format date as DD-MM-YYYY for API/Cache
         let formatter = DateFormatter()
         formatter.dateFormat = "dd-MM-yyyy"
         let dateString = formatter.string(from: date)
-        
+
+        // Try to load cached prayer times first for instant display
+        // Don't show offline banner yet - wait to see if network fetch succeeds
+        if let cachedData = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(dateString)"),
+           let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: cachedData) {
+            // Load cached data immediately
+            let cachedPrayerTimesDict = cache.toPrayerTimes()
+
+            // Convert cached times to formatted strings
+            var cachedTimings: [String: String] = [:]
+            let timeFormatter = DateFormatter()
+
+            // Use the current timezone for displaying cached times
+            // The Date objects already contain the correct absolute time
+            timeFormatter.timeZone = TimeZone.current
+
+            if timeFormat == "24" {
+                timeFormatter.dateFormat = "HH:mm"
+            } else {
+                timeFormatter.dateFormat = "h:mm a"
+            }
+
+            for (name, time) in cachedPrayerTimesDict {
+                cachedTimings[name] = timeFormatter.string(from: time)
+            }
+
+            prayerTimes = parsePrayerTimings(cachedTimings)
+            hijriDate = cache.hijriDate.isEmpty ? "" : cache.hijriDate
+            // Don't set isShowingCachedData yet - let network fetch determine this
+            isLoading = false
+
+            print("📂 Loaded cached prayer times for \(dateString)")
+        } else {
+            isLoading = true
+            prayerTimes = []
+            hijriDate = ""
+            isShowingCachedData = false
+        }
+
         // Build API URL using AppStorage values
         let urlString = "https://api.aladhan.com/v1/timings/\(dateString)?latitude=\(currentLat)&longitude=\(currentLng)&method=\(selectedMethodId)&iso8601=true&midnightMode=1"
-        
+
         guard let url = URL(string: urlString) else {
             isLoading = false
             return
         }
-        
-        // Make API request
+
+        // Make API request (fetch fresh data in background, even if we have cache)
         URLSession.shared.dataTask(with: url) { data, response, error in
             DispatchQueue.main.async {
                 isLoading = false
-                
+
                 guard let data = data, error == nil else {
                     print("Error fetching prayer times: \(error?.localizedDescription ?? "Unknown error")")
+                    // Only show offline banner if we have cached data to display
+                    if !prayerTimes.isEmpty {
+                        isShowingCachedData = true
+                        print("📶 Network unavailable, showing cached data")
+                    }
                     return
                 }
-                
+
                 do {
                     let result = try JSONDecoder().decode(PrayerResponse.self, from: data)
                     prayerTimes = parsePrayerTimes(from: result.data.timings)
                     hijriDate = formatHijriDate(from: result.data.date.hijri)
+                    isShowingCachedData = false  // Now showing fresh data
+                    print("✅ Loaded fresh prayer times for \(dateString)")
                 } catch {
                     print("Error decoding prayer times: \(error)")
+                    // Show offline banner if we have cached data but decode failed
+                    if !prayerTimes.isEmpty {
+                        isShowingCachedData = true
+                    }
                 }
             }
         }.resume()
     }
+
+    // Helper to parse timings when we already have formatted strings (from cache)
+    func parsePrayerTimings(_ timings: [String: String]) -> [PrayerTime] {
+        var times: [PrayerTime] = [
+            PrayerTime(name: "Fajr", time: timings["Fajr"] ?? "", icon: "sunrise.fill"),
+            PrayerTime(name: "Sunrise", time: timings["Sunrise"] ?? "", icon: "sun.horizon.fill"),
+            PrayerTime(name: "Dhuhr", time: timings["Dhuhr"] ?? "", icon: "sun.max.fill")
+        ]
+
+        if showAsr {
+            times.append(PrayerTime(name: "Asr", time: timings["Asr"] ?? "", icon: "sun.min.fill"))
+        }
+
+        times.append(PrayerTime(name: "Sunset", time: timings["Sunset"] ?? "", icon: "sunset.fill"))
+        times.append(PrayerTime(name: "Maghrib", time: timings["Maghrib"] ?? "", icon: "moon.fill"))
+
+        if showIsha {
+            times.append(PrayerTime(name: "Isha", time: timings["Isha"] ?? "", icon: "moon.stars.fill"))
+        }
+
+        times.append(PrayerTime(name: "Midnight", time: timings["Midnight"] ?? "", icon: "moon.zzz.fill"))
+
+        return times
+    }
     
     func parsePrayerTimes(from timings: [String: String]) -> [PrayerTime] {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-        
-        let timeFormatter = DateFormatter()
-        // Use timeFormat AppStorage value to set format
-        if timeFormat == "24" {
-            timeFormatter.dateFormat = "HH:mm"
-        } else {
-            timeFormatter.dateFormat = "h:mm a"
-        }
-        
         func formatTime(_ isoString: String) -> String {
-            if let date = formatter.date(from: isoString) {
-                return timeFormatter.string(from: date)
+            // Parse ISO8601 format (which includes timezone info)
+            let iso8601Formatter = ISO8601DateFormatter()
+            iso8601Formatter.formatOptions = [.withInternetDateTime]
+
+            guard let date = iso8601Formatter.date(from: isoString) else {
+                return isoString // Fallback to original string if parsing fails
             }
-            return isoString
+
+            // Extract the timezone from the ISO string to show the LOCAL time of the selected city
+            let timeZoneRegex = /([+-]\d{2}):(\d{2})$/
+            var selectedLocationTimeZone: TimeZone?
+
+            if let match = isoString.firstMatch(of: timeZoneRegex) {
+                let hours = Int(match.1) ?? 0
+                let minutes = Int(match.2) ?? 0
+                let totalSeconds = (abs(hours) * 3600) + (minutes * 60)
+                let offsetSeconds = match.1.hasPrefix("-") ? -totalSeconds : totalSeconds
+                selectedLocationTimeZone = TimeZone(secondsFromGMT: offsetSeconds)
+            }
+
+            // Format in the SELECTED LOCATION'S timezone (not user's local timezone)
+            // This shows the actual local prayer time for that city
+            let displayFormatter = DateFormatter()
+            displayFormatter.timeZone = selectedLocationTimeZone ?? TimeZone.current
+            displayFormatter.locale = Locale(identifier: "en_US_POSIX") // consistent formatting
+
+            // Use timeFormat AppStorage value to set format
+            if timeFormat == "24" {
+                displayFormatter.dateFormat = "HH:mm"
+            } else {
+                displayFormatter.dateFormat = "h:mm a"
+            }
+
+            return displayFormatter.string(from: date)
         }
         
         var times: [PrayerTime] = [
