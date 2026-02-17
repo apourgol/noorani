@@ -68,7 +68,7 @@ struct AboutView: View {
 
                             // Version Info
                             VStack(spacing: 1) {
-                                AboutInfoRow(title: "Version", value: "1.0.0")
+                                AboutInfoRow(title: "Version", value: "1.3")
                                 Divider().background(Color.gray.opacity(0.3))
 
 

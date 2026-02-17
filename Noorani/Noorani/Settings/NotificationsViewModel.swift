@@ -2,9 +2,6 @@
 //  NotificationsViewModel.swift
 //  Noorani
 //  Copyright © 2025 AP Bros. All rights reserved.
- 
-  
-
 //
 
 import Foundation
@@ -26,18 +23,7 @@ class NotificationsViewModel: ObservableObject {
     @Published var notificationOffset: Int = 0 // Minutes before prayer
     @Published var expirationNotificationOffset: Int = 15 // Minutes before expiration
     @Published var showingPermissionAlert: Bool = false
-
-    // LIVE ACTIVITIES DISABLED - LOCAL NOTIFICATIONS ONLY
-    // @Published var liveActivitiesEnabled: Bool = false
-    // @Published var liveActivityStartOffset: Int = 30
     @Published var pendingNotificationsCount: Int = 0
-
-    // Per-prayer Live Activity toggles (DISABLED)
-    // @Published var fajrLiveActivity: Bool = true
-    // @Published var dhuhrLiveActivity: Bool = true
-    // @Published var asrLiveActivity: Bool = true
-    // @Published var maghribLiveActivity: Bool = true
-    // @Published var ishaLiveActivity: Bool = true
 
     // Per-prayer notification settings (start notifications)
     @Published var fajrStartNotificationEnabled: Bool = true
@@ -67,6 +53,26 @@ class NotificationsViewModel: ObservableObject {
     @Published var maghribExpireNotificationOffset: Int = 15
     @Published var ishaExpireNotificationOffset: Int = 15
 
+    // MARK: - Live Activities Settings
+    @Published var liveActivitiesEnabled: Bool = false
+
+    // Per-prayer toggles
+    @Published var fajrLiveActivity: Bool = true
+    @Published var dhuhrLiveActivity: Bool = true
+    @Published var asrLiveActivity: Bool = true
+    @Published var maghribLiveActivity: Bool = true
+    @Published var ishaLiveActivity: Bool = true
+
+    // Per-prayer time offsets (minutes before prayer: 15, 30, 45, 60, 90, 120)
+    @Published var fajrLiveActivityOffset: Int = 30
+    @Published var dhuhrLiveActivityOffset: Int = 30
+    @Published var asrLiveActivityOffset: Int = 30
+    @Published var maghribLiveActivityOffset: Int = 30
+    @Published var ishaLiveActivityOffset: Int = 30
+
+    // Available time options
+    let liveActivityTimeOptions = [15, 30, 45, 60, 90, 120]
+
     // Reference to prayer times fetcher for rescheduling
     weak var prayerTimesFetcher: PrayerTimesFetcher?
 
@@ -90,16 +96,21 @@ class NotificationsViewModel: ObservableObject {
         midnightNotification = UserDefaults.standard.bool(forKey: "midnightNotification")
         notificationOffset = UserDefaults.standard.integer(forKey: "notificationOffset")
         expirationNotificationOffset = UserDefaults.standard.object(forKey: "expirationNotificationOffset") as? Int ?? 15
-        // LIVE ACTIVITIES DISABLED
-        // liveActivitiesEnabled = UserDefaults.standard.bool(forKey: "liveActivitiesEnabled")
-        // liveActivityStartOffset = UserDefaults.standard.object(forKey: "liveActivityStartOffset") as? Int ?? 30
 
-        // Load per-prayer Live Activity settings (DISABLED)
-        // fajrLiveActivity = UserDefaults.standard.object(forKey: "fajrLiveActivity") as? Bool ?? true
-        // dhuhrLiveActivity = UserDefaults.standard.object(forKey: "dhuhrLiveActivity") as? Bool ?? true
-        // asrLiveActivity = UserDefaults.standard.object(forKey: "asrLiveActivity") as? Bool ?? true
-        // maghribLiveActivity = UserDefaults.standard.object(forKey: "maghribLiveActivity") as? Bool ?? true
-        // ishaLiveActivity = UserDefaults.standard.object(forKey: "ishaLiveActivity") as? Bool ?? true
+        // Load Live Activities settings
+        liveActivitiesEnabled = UserDefaults.standard.bool(forKey: "liveActivitiesEnabled")
+
+        fajrLiveActivity = UserDefaults.standard.object(forKey: "fajrLiveActivity") as? Bool ?? true
+        dhuhrLiveActivity = UserDefaults.standard.object(forKey: "dhuhrLiveActivity") as? Bool ?? true
+        asrLiveActivity = UserDefaults.standard.object(forKey: "asrLiveActivity") as? Bool ?? true
+        maghribLiveActivity = UserDefaults.standard.object(forKey: "maghribLiveActivity") as? Bool ?? true
+        ishaLiveActivity = UserDefaults.standard.object(forKey: "ishaLiveActivity") as? Bool ?? true
+
+        fajrLiveActivityOffset = UserDefaults.standard.object(forKey: "fajrLiveActivityOffset") as? Int ?? 30
+        dhuhrLiveActivityOffset = UserDefaults.standard.object(forKey: "dhuhrLiveActivityOffset") as? Int ?? 30
+        asrLiveActivityOffset = UserDefaults.standard.object(forKey: "asrLiveActivityOffset") as? Int ?? 30
+        maghribLiveActivityOffset = UserDefaults.standard.object(forKey: "maghribLiveActivityOffset") as? Int ?? 30
+        ishaLiveActivityOffset = UserDefaults.standard.object(forKey: "ishaLiveActivityOffset") as? Int ?? 30
 
         // Load per-prayer start notification settings
         fajrStartNotificationEnabled = UserDefaults.standard.object(forKey: "fajrStartNotificationEnabled") as? Bool ?? true
@@ -142,16 +153,24 @@ class NotificationsViewModel: ObservableObject {
         UserDefaults.standard.set(midnightNotification, forKey: "midnightNotification")
         UserDefaults.standard.set(notificationOffset, forKey: "notificationOffset")
         UserDefaults.standard.set(expirationNotificationOffset, forKey: "expirationNotificationOffset")
-        // LIVE ACTIVITIES DISABLED
-        // UserDefaults.standard.set(liveActivitiesEnabled, forKey: "liveActivitiesEnabled")
-        // UserDefaults.standard.set(liveActivityStartOffset, forKey: "liveActivityStartOffset")
 
-        // Save per-prayer Live Activity settings (DISABLED)
-        // UserDefaults.standard.set(fajrLiveActivity, forKey: "fajrLiveActivity")
-        // UserDefaults.standard.set(dhuhrLiveActivity, forKey: "dhuhrLiveActivity")
-        // UserDefaults.standard.set(asrLiveActivity, forKey: "asrLiveActivity")
-        // UserDefaults.standard.set(maghribLiveActivity, forKey: "maghribLiveActivity")
-        // UserDefaults.standard.set(ishaLiveActivity, forKey: "ishaLiveActivity")
+        // Save Live Activities settings
+        UserDefaults.standard.set(liveActivitiesEnabled, forKey: "liveActivitiesEnabled")
+
+        UserDefaults.standard.set(fajrLiveActivity, forKey: "fajrLiveActivity")
+        UserDefaults.standard.set(dhuhrLiveActivity, forKey: "dhuhrLiveActivity")
+        UserDefaults.standard.set(asrLiveActivity, forKey: "asrLiveActivity")
+        UserDefaults.standard.set(maghribLiveActivity, forKey: "maghribLiveActivity")
+        UserDefaults.standard.set(ishaLiveActivity, forKey: "ishaLiveActivity")
+
+        UserDefaults.standard.set(fajrLiveActivityOffset, forKey: "fajrLiveActivityOffset")
+        UserDefaults.standard.set(dhuhrLiveActivityOffset, forKey: "dhuhrLiveActivityOffset")
+        UserDefaults.standard.set(asrLiveActivityOffset, forKey: "asrLiveActivityOffset")
+        UserDefaults.standard.set(maghribLiveActivityOffset, forKey: "maghribLiveActivityOffset")
+        UserDefaults.standard.set(ishaLiveActivityOffset, forKey: "ishaLiveActivityOffset")
+
+        // CRITICAL: Sync Live Activity settings to App Group for widget/background access
+        syncLiveActivitySettingsToAppGroup()
 
         // Save per-prayer start notification settings
         UserDefaults.standard.set(fajrStartNotificationEnabled, forKey: "fajrStartNotificationEnabled")
@@ -219,11 +238,6 @@ class NotificationsViewModel: ObservableObject {
         }
         saveSettings()
         rescheduleNotifications()
-
-        // LIVE ACTIVITIES DISABLED - No Firestore sync
-        // if liveActivitiesEnabled {
-        //     syncToFirestore()
-        // }
     }
 
     func updateNotificationOffset(_ offset: Int) {
@@ -237,63 +251,6 @@ class NotificationsViewModel: ObservableObject {
         saveSettings()
         rescheduleNotifications()
     }
-
-    // LIVE ACTIVITIES DISABLED
-    /*
-    func updateLiveActivityStartOffset(_ offset: Int) {
-        // Clamp to allowed range: 5-180 minutes
-        let clampedValue = max(5, min(offset, 180))
-
-        // Only update and sync if value actually changed
-        guard clampedValue != liveActivityStartOffset else {
-            return // No change, skip unnecessary writes
-        }
-
-        liveActivityStartOffset = clampedValue
-        saveSettings()
-
-        // Sync to Firestore if Live Activities are enabled
-        if liveActivitiesEnabled {
-            syncToFirestore()
-        }
-    }
-
-    func toggleLiveActivities() {
-        liveActivitiesEnabled.toggle()
-        saveSettings()
-
-        // Sync to Firestore for remote push-to-start
-        if liveActivitiesEnabled {
-            print("🔔 Live Activities enabled, syncing to Firestore...")
-            syncToFirestore()
-        } else {
-            print("🔕 Live Activities disabled")
-        }
-    }
-
-    func updatePrayerLiveActivity(prayer: String, enabled: Bool) {
-        switch prayer.lowercased() {
-        case "fajr":
-            fajrLiveActivity = enabled
-        case "dhuhr":
-            dhuhrLiveActivity = enabled
-        case "asr":
-            asrLiveActivity = enabled
-        case "maghrib":
-            maghribLiveActivity = enabled
-        case "isha":
-            ishaLiveActivity = enabled
-        default:
-            break
-        }
-        saveSettings()
-
-        // Sync to Firestore if Live Activities are enabled
-        if liveActivitiesEnabled {
-            syncToFirestore()
-        }
-    }
-    */
 
     /// Update whether start notification is enabled for a specific prayer
     func updatePrayerStartNotificationEnabled(prayer: String, enabled: Bool) {
@@ -313,11 +270,6 @@ class NotificationsViewModel: ObservableObject {
         }
         saveSettings()
         rescheduleNotifications()
-
-        // LIVE ACTIVITIES DISABLED - No Firestore sync
-        // if liveActivitiesEnabled {
-        //     syncToFirestore()
-        // }
     }
 
     /// Update start notification offset for a specific prayer
@@ -360,11 +312,6 @@ class NotificationsViewModel: ObservableObject {
         }
         saveSettings()
         rescheduleNotifications()
-
-        // LIVE ACTIVITIES DISABLED - No Firestore sync
-        // if liveActivitiesEnabled {
-        //     syncToFirestore()
-        // }
     }
 
     /// Update expiration notification offset for a specific prayer
@@ -389,22 +336,6 @@ class NotificationsViewModel: ObservableObject {
         rescheduleNotifications()
     }
 
-    // LIVE ACTIVITIES DISABLED - No Firestore sync
-    /*
-    /// Sync current settings to Firestore for remote Live Activity scheduling
-    func syncToFirestore() {
-        if #available(iOS 17.2, *) {
-            Task { @MainActor in
-                print("📤 Syncing settings to Firestore...")
-                await PushToStartManager.shared.syncAllSettings()
-                print("✅ Firestore sync complete")
-            }
-        } else {
-            print("⚠️ iOS 17.2+ required for push-to-start Live Activities")
-        }
-    }
-    */
-    
     // MARK: - Prayer Expiration Logic
     // Returns the expiration time for a given prayer
     func getExpirationTime(for prayer: String, prayerTimes: [String: Date]) -> Date? {
@@ -484,5 +415,101 @@ class NotificationsViewModel: ObservableObject {
             }
             completion(descriptions)
         }
+    }
+
+    // MARK: - Live Activities Methods
+
+    func toggleLiveActivities() {
+        liveActivitiesEnabled.toggle()
+        saveSettings()
+
+        print("🔔 [Live Activity] Master toggle changed to: \(liveActivitiesEnabled ? "ON" : "OFF")")
+
+        if !liveActivitiesEnabled {
+            // End any active Live Activity
+            if #available(iOS 16.1, *) {
+                print("🛑 [Live Activity] Ending current activity")
+                LiveActivityManager.shared.endCurrentActivity()
+            }
+        } else {
+            print("✅ [Live Activity] Master toggle enabled - Live Activities can now start")
+        }
+    }
+
+    func updatePrayerLiveActivity(_ prayer: String, enabled: Bool) {
+        switch prayer.lowercased() {
+        case "fajr": fajrLiveActivity = enabled
+        case "dhuhr": dhuhrLiveActivity = enabled
+        case "asr": asrLiveActivity = enabled
+        case "maghrib": maghribLiveActivity = enabled
+        case "isha": ishaLiveActivity = enabled
+        default: break
+        }
+        saveSettings()
+    }
+
+    func updatePrayerLiveActivityOffset(_ prayer: String, offset: Int) {
+        // Clamp to 15-720 minutes (15 min to 12 hours)
+        let clampedOffset = max(15, min(720, offset))
+
+        switch prayer.lowercased() {
+        case "fajr": fajrLiveActivityOffset = clampedOffset
+        case "dhuhr": dhuhrLiveActivityOffset = clampedOffset
+        case "asr": asrLiveActivityOffset = clampedOffset
+        case "maghrib": maghribLiveActivityOffset = clampedOffset
+        case "isha": ishaLiveActivityOffset = clampedOffset
+        default: break
+        }
+        saveSettings()
+
+        print("✅ Updated \(prayer) Live Activity offset to \(clampedOffset) minutes")
+    }
+
+    func getLiveActivityOffset(for prayer: String) -> Int {
+        switch prayer.lowercased() {
+        case "fajr": return fajrLiveActivityOffset
+        case "dhuhr": return dhuhrLiveActivityOffset
+        case "asr": return asrLiveActivityOffset
+        case "maghrib": return maghribLiveActivityOffset
+        case "isha": return ishaLiveActivityOffset
+        default: return 30
+        }
+    }
+
+    func isLiveActivityEnabled(for prayer: String) -> Bool {
+        switch prayer.lowercased() {
+        case "fajr": return fajrLiveActivity
+        case "dhuhr": return dhuhrLiveActivity
+        case "asr": return asrLiveActivity
+        case "maghrib": return maghribLiveActivity
+        case "isha": return ishaLiveActivity
+        default: return false
+        }
+    }
+
+    // MARK: - App Group Sync
+
+    /// Sync Live Activity settings to App Group for background task and widget access
+    private func syncLiveActivitySettingsToAppGroup() {
+        let dataManager = SharedDataManager.shared
+
+        // Sync master toggle
+        dataManager.saveLiveActivityPreference(enabled: liveActivitiesEnabled)
+
+        // Sync per-prayer toggles
+        dataManager.savePrayerLiveActivityEnabled(prayer: "Fajr", enabled: fajrLiveActivity)
+        dataManager.savePrayerLiveActivityEnabled(prayer: "Dhuhr", enabled: dhuhrLiveActivity)
+        dataManager.savePrayerLiveActivityEnabled(prayer: "Asr", enabled: asrLiveActivity)
+        dataManager.savePrayerLiveActivityEnabled(prayer: "Maghrib", enabled: maghribLiveActivity)
+        dataManager.savePrayerLiveActivityEnabled(prayer: "Isha", enabled: ishaLiveActivity)
+
+        // Sync per-prayer offsets
+        dataManager.savePrayerLiveActivityOffset(prayer: "Fajr", minutes: fajrLiveActivityOffset)
+        dataManager.savePrayerLiveActivityOffset(prayer: "Dhuhr", minutes: dhuhrLiveActivityOffset)
+        dataManager.savePrayerLiveActivityOffset(prayer: "Asr", minutes: asrLiveActivityOffset)
+        dataManager.savePrayerLiveActivityOffset(prayer: "Maghrib", minutes: maghribLiveActivityOffset)
+        dataManager.savePrayerLiveActivityOffset(prayer: "Isha", minutes: ishaLiveActivityOffset)
+
+        print("✅ [NotificationsViewModel] Synced Live Activity settings to App Group")
     }
 }

@@ -8,6 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		AD0C03C52EBEEA96000BF455 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = AD0C03C42EBEEA96000BF455 /* MijickCalendarView */; };
+		B54D83D72F0D62240035A2F3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5F4B0122ECAEB61001A67D5 /* WidgetKit.framework */; };
+		B54D83D82F0D62240035A2F3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5F4B0142ECAEB61001A67D5 /* SwiftUI.framework */; };
+		B54D83F82F0D69410035A2F3 /* NooraniWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B54D83D62F0D62240035A2F3 /* NooraniWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		B54D84042F0E961D0035A2F3 /* ActivityKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5F4B02E2ECAED40001A67D5 /* ActivityKit.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -25,15 +29,37 @@
 			remoteGlobalIDString = ADCE47B92E77A2A8004F5972;
 			remoteInfo = Noorani;
 		};
+		B54D83F62F0D692C0035A2F3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ADCE47B22E77A2A8004F5972 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B54D83D52F0D62240035A2F3;
+			remoteInfo = NooraniWidgetExtension;
+		};
+		B54D83F92F0D69410035A2F3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ADCE47B22E77A2A8004F5972 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B54D83D52F0D62240035A2F3;
+			remoteInfo = NooraniWidgetExtension;
+		};
+		B54D83FC2F0D69460035A2F3 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ADCE47B22E77A2A8004F5972 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B54D83D52F0D62240035A2F3;
+			remoteInfo = NooraniWidgetExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		B5F4B0272ECAEB62001A67D5 /* Embed Foundation Extensions */ = {
+		B54D83FB2F0D69410035A2F3 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
+				B54D83F82F0D69410035A2F3 /* NooraniWidgetExtension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -44,12 +70,38 @@
 		ADCE47BA2E77A2A8004F5972 /* Noorani.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Noorani.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADCE47CB2E77A2AA004F5972 /* NooraniTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NooraniTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		ADCE47D52E77A2AA004F5972 /* NooraniUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NooraniUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B54D83D62F0D62240035A2F3 /* NooraniWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NooraniWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B54D84052F0EA0B60035A2F3 /* NooraniWidgetExtension.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NooraniWidgetExtension.entitlements; sourceTree = "<group>"; };
 		B5F4B0122ECAEB61001A67D5 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
 		B5F4B0142ECAEB61001A67D5 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
 		B5F4B02E2ECAED40001A67D5 /* ActivityKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ActivityKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.1.sdk/System/Library/Frameworks/ActivityKit.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		B54D83E92F0D62250035A2F3 /* Exceptions for "NooraniWidget" folder in "NooraniWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */;
+		};
+		B54D83ED2F0D63000035A2F3 /* Exceptions for "NooraniWidget" folder in "Noorani" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				PrayerCountdownLiveActivity.swift,
+			);
+			target = ADCE47B92E77A2A8004F5972 /* Noorani */;
+		};
+		B54D83F22F0D63150035A2F3 /* Exceptions for "Noorani" folder in "NooraniWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Font/KFGQPC Uthman Taha Naskh Bold.ttf",
+				"Font/Nunito-Light.ttf",
+				"Font/Nunito-Regular.ttf",
+				"Font/Nunito-SemiBold.ttf",
+			);
+			target = B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */;
+		};
 		B56E4E6F2E8AEA8700BCD9E9 /* Exceptions for "Noorani" folder in "Noorani" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -64,6 +116,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				B56E4E6F2E8AEA8700BCD9E9 /* Exceptions for "Noorani" folder in "Noorani" target */,
+				B54D83F22F0D63150035A2F3 /* Exceptions for "Noorani" folder in "NooraniWidgetExtension" target */,
 			);
 			path = Noorani;
 			sourceTree = "<group>";
@@ -76,6 +129,15 @@
 		ADCE47D82E77A2AA004F5972 /* NooraniUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = NooraniUITests;
+			sourceTree = "<group>";
+		};
+		B54D83D92F0D62240035A2F3 /* NooraniWidget */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				B54D83ED2F0D63000035A2F3 /* Exceptions for "NooraniWidget" folder in "Noorani" target */,
+				B54D83E92F0D62250035A2F3 /* Exceptions for "NooraniWidget" folder in "NooraniWidgetExtension" target */,
+			);
+			path = NooraniWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -103,15 +165,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B54D83D32F0D62240035A2F3 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B54D84042F0E961D0035A2F3 /* ActivityKit.framework in Frameworks */,
+				B54D83D82F0D62240035A2F3 /* SwiftUI.framework in Frameworks */,
+				B54D83D72F0D62240035A2F3 /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
 		ADCE47B12E77A2A8004F5972 = {
 			isa = PBXGroup;
 			children = (
+				B54D84052F0EA0B60035A2F3 /* NooraniWidgetExtension.entitlements */,
 				ADCE47BC2E77A2A8004F5972 /* Noorani */,
 				ADCE47CE2E77A2AA004F5972 /* NooraniTests */,
 				ADCE47D82E77A2AA004F5972 /* NooraniUITests */,
+				B54D83D92F0D62240035A2F3 /* NooraniWidget */,
 				B5F4AFFE2ECAD928001A67D5 /* Frameworks */,
 				ADCE47BB2E77A2A8004F5972 /* Products */,
 			);
@@ -123,6 +197,7 @@
 				ADCE47BA2E77A2A8004F5972 /* Noorani.app */,
 				ADCE47CB2E77A2AA004F5972 /* NooraniTests.xctest */,
 				ADCE47D52E77A2AA004F5972 /* NooraniUITests.xctest */,
+				B54D83D62F0D62240035A2F3 /* NooraniWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -147,11 +222,14 @@
 				ADCE47B62E77A2A8004F5972 /* Sources */,
 				ADCE47B72E77A2A8004F5972 /* Frameworks */,
 				ADCE47B82E77A2A8004F5972 /* Resources */,
-				B5F4B0272ECAEB62001A67D5 /* Embed Foundation Extensions */,
+				B54D83FB2F0D69410035A2F3 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				B54D83F72F0D692C0035A2F3 /* PBXTargetDependency */,
+				B54D83FA2F0D69410035A2F3 /* PBXTargetDependency */,
+				B54D83FD2F0D69460035A2F3 /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				ADCE47BC2E77A2A8004F5972 /* Noorani */,
@@ -210,6 +288,28 @@
 			productReference = ADCE47D52E77A2AA004F5972 /* NooraniUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B54D83E62F0D62250035A2F3 /* Build configuration list for PBXNativeTarget "NooraniWidgetExtension" */;
+			buildPhases = (
+				B54D83D22F0D62240035A2F3 /* Sources */,
+				B54D83D32F0D62240035A2F3 /* Frameworks */,
+				B54D83D42F0D62240035A2F3 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				B54D83D92F0D62240035A2F3 /* NooraniWidget */,
+			);
+			name = NooraniWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = NooraniWidgetExtension;
+			productReference = B54D83D62F0D62240035A2F3 /* NooraniWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -230,6 +330,9 @@
 					ADCE47D42E77A2AA004F5972 = {
 						CreatedOnToolsVersion = 16.2;
 						TestTargetID = ADCE47B92E77A2A8004F5972;
+					};
+					B54D83D52F0D62240035A2F3 = {
+						CreatedOnToolsVersion = 26.1.1;
 					};
 				};
 			};
@@ -253,6 +356,7 @@
 				ADCE47B92E77A2A8004F5972 /* Noorani */,
 				ADCE47CA2E77A2AA004F5972 /* NooraniTests */,
 				ADCE47D42E77A2AA004F5972 /* NooraniUITests */,
+				B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -273,6 +377,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		ADCE47D32E77A2AA004F5972 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B54D83D42F0D62240035A2F3 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -303,6 +414,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B54D83D22F0D62240035A2F3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -315,6 +433,21 @@
 			isa = PBXTargetDependency;
 			target = ADCE47B92E77A2A8004F5972 /* Noorani */;
 			targetProxy = ADCE47D62E77A2AA004F5972 /* PBXContainerItemProxy */;
+		};
+		B54D83F72F0D692C0035A2F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */;
+			targetProxy = B54D83F62F0D692C0035A2F3 /* PBXContainerItemProxy */;
+		};
+		B54D83FA2F0D69410035A2F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */;
+			targetProxy = B54D83F92F0D69410035A2F3 /* PBXContainerItemProxy */;
+		};
+		B54D83FD2F0D69460035A2F3 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B54D83D52F0D62240035A2F3 /* NooraniWidgetExtension */;
+			targetProxy = B54D83FC2F0D69460035A2F3 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -457,7 +590,6 @@
 				INFOPLIST_FILE = Noorani/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Noorani;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Noorani uses motion sensors to provide smooth compass functionality and enhance the accuracy of Qibla direction detection.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -476,7 +608,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -511,7 +643,6 @@
 				INFOPLIST_FILE = Noorani/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = Noorani;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.reference";
-				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Noorani needs location access to show accurate prayer times for your area.";
 				INFOPLIST_KEY_NSMotionUsageDescription = "Noorani uses motion sensors to provide smooth compass functionality and enhance the accuracy of Qibla direction detection.";
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
@@ -530,7 +661,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "@executable_path/Frameworks";
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
-				MARKETING_VERSION = 1.2;
+				MARKETING_VERSION = 1.3;
 				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -552,7 +683,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V6N8VGM9TM;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -576,7 +707,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V6N8VGM9TM;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -599,7 +730,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V6N8VGM9TM;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -622,7 +753,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEAD_CODE_STRIPPING = YES;
-				DEVELOPMENT_TEAM = V6N8VGM9TM;
+				DEVELOPMENT_TEAM = 8C63825C8B;
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 18.2;
 				MACOSX_DEPLOYMENT_TARGET = 15.2;
@@ -636,6 +767,83 @@
 				TARGETED_DEVICE_FAMILY = "1,2,7";
 				TEST_TARGET_NAME = Noorani;
 				XROS_DEPLOYMENT_TARGET = 2.2;
+			};
+			name = Release;
+		};
+		B54D83E72F0D62250035A2F3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = NooraniWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8C63825C8B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NooraniWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NooraniWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani.NooraniWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		B54D83E82F0D62250035A2F3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = NooraniWidgetExtension.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 8C63825C8B;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NooraniWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = NooraniWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.3;
+				PRODUCT_BUNDLE_IDENTIFIER = com.apbrology.Noorani.NooraniWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
 			};
 			name = Release;
 		};
@@ -674,6 +882,15 @@
 			buildConfigurations = (
 				ADCE47E62E77A2AA004F5972 /* Debug */,
 				ADCE47E72E77A2AA004F5972 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		B54D83E62F0D62250035A2F3 /* Build configuration list for PBXNativeTarget "NooraniWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				B54D83E72F0D62250035A2F3 /* Debug */,
+				B54D83E82F0D62250035A2F3 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

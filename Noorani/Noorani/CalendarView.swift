@@ -200,19 +200,28 @@ private extension AzanCalendarView {
     }
     
     func createEmptyStateView() -> some View {
-        VStack(spacing: 12) {
-            Image(systemName: "calendar.badge.clock")
-                .font(.system(size: 50))
-                .foregroundColor(.gray)
-            
-            Text("Select a date")
-                .font(.headline)
-                .foregroundColor(.secondary)
-            
-            Text("Choose a date from the calendar to view prayer times")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.center)
+        VStack(spacing: 16) {
+            Spacer()
+
+            // Always show offline state
+            VStack(spacing: 12) {
+                Image(systemName: "wifi.slash")
+                    .font(.system(size: 44))
+                    .foregroundColor(.orange)
+
+                Text("Offline")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+
+                Text("Connect to internet to view more days")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+            }
+
+            Spacer()
         }
         .frame(maxHeight: .infinity)
         .padding()

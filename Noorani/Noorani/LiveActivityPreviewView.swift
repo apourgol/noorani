@@ -15,6 +15,9 @@ struct LiveActivityPreviewView: View {
 
     let prayers = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"]
 
+    // Testing mode - allows up to 4 hours (240 minutes)
+    @AppStorage("liveActivityTestingMode") private var testingMode: Bool = false
+
     var body: some View {
         ZStack {
             // Noorani gradient background
@@ -85,15 +88,30 @@ struct LiveActivityPreviewView: View {
 
                         // Time Selector
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Minutes Until Prayer: \(minutesRemaining)")
-                                .font(.custom("Nunito-SemiBold", size: 16))
-                                .foregroundColor(.black.opacity(0.8))
+                            HStack {
+                                Text("Minutes Until Prayer: \(minutesRemaining)")
+                                    .font(.custom("Nunito-SemiBold", size: 16))
+                                    .foregroundColor(.black.opacity(0.8))
+
+                                Spacer()
+
+                                // Testing mode toggle
+                                Toggle("Testing (4h)", isOn: $testingMode)
+                                    .font(.custom("Nunito-Regular", size: 12))
+                                    .tint(Color(hex: "#fab555"))
+                            }
 
                             Slider(value: Binding(
                                 get: { Double(minutesRemaining) },
                                 set: { minutesRemaining = Int($0) }
-                            ), in: 1...60, step: 1)
+                            ), in: 1...(testingMode ? 720 : 60), step: 1)
                             .tint(Color(hex: "#fab555"))
+
+                            if testingMode {
+                                Text("Testing mode: Up to 12 hours for Live Activity testing")
+                                    .font(.custom("Nunito-Regular", size: 11))
+                                    .foregroundColor(.orange)
+                            }
                         }
                         .padding(.horizontal, 20)
 
@@ -110,7 +128,8 @@ struct LiveActivityPreviewView: View {
                                 prayerName: selectedPrayer,
                                 prayerIcon: iconForPrayer(selectedPrayer),
                                 targetTime: Date().addingTimeInterval(Double(minutesRemaining * 60)),
-                                formattedTime: formattedPrayerTime()
+                                formattedTime: formattedPrayerTime(),
+                                minutesRemaining: minutesRemaining
                             )
                         }
                         .padding(.horizontal, 20)
@@ -125,7 +144,8 @@ struct LiveActivityPreviewView: View {
                                 prayerName: selectedPrayer,
                                 prayerIcon: iconForPrayer(selectedPrayer),
                                 targetTime: Date().addingTimeInterval(Double(minutesRemaining * 60)),
-                                formattedTime: formattedPrayerTime()
+                                formattedTime: formattedPrayerTime(),
+                                minutesRemaining: minutesRemaining
                             )
                         }
                         .padding(.horizontal, 20)
@@ -139,7 +159,8 @@ struct LiveActivityPreviewView: View {
                             DynamicIslandCompactPreview(
                                 prayerName: selectedPrayer,
                                 prayerIcon: iconForPrayer(selectedPrayer),
-                                targetTime: Date().addingTimeInterval(Double(minutesRemaining * 60))
+                                targetTime: Date().addingTimeInterval(Double(minutesRemaining * 60)),
+                                minutesRemaining: minutesRemaining
                             )
                         }
                         .padding(.horizontal, 20)
@@ -189,48 +210,48 @@ struct LockScreenPreview: View {
     let prayerIcon: String
     let targetTime: Date
     let formattedTime: String
+    let minutesRemaining: Int
 
     var body: some View {
         HStack(spacing: 12) {
-            // Left side - App Logo
-            Image("Logo")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 46, height: 46)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
+            // Left side - Prayer icon
+            Image(systemName: prayerIcon)
+                .font(.system(size: 24, weight: .medium))
+                .foregroundStyle(Color(hex: "#fab555"))
+                .frame(width: 36, height: 36)
 
-            // Middle - Prayer info with SF Symbol
-            HStack(spacing: 6) {
-                Image(systemName: prayerIcon)
-                    .foregroundColor(Color(hex: "#d4892e"))
-                    .font(.system(size: 24, weight: .semibold))
+            // Middle - Prayer name and time
+            VStack(alignment: .leading, spacing: 2) {
+                Text(prayerName)
+                    .font(.custom("Nunito-SemiBold", size: 16))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(prayerName)
-                        .font(.custom("Nunito-SemiBold", size: 17))
-                        .foregroundColor(Color(red: 0.15, green: 0.1, blue: 0.05))
-
-                    Text(formattedTime)
-                        .font(.custom("Nunito-SemiBold", size: 13))
-                        .foregroundColor(Color(red: 0.35, green: 0.3, blue: 0.25))
-                        .monospacedDigit()
-                }
+                Text(formattedTime)
+                    .font(.custom("Nunito-Regular", size: 13))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
             }
 
             Spacer()
 
-            // Right side - Large Countdown Timer
-            Text(targetTime, style: .timer)
-                .font(.system(size: 38, weight: .heavy, design: .rounded))
-                .monospacedDigit()
-                .multilineTextAlignment(.trailing)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
-                .frame(minWidth: 90, alignment: .trailing)
-                .foregroundColor(Color(hex: "#d4892e"))
+            // Right side - Auto-updating countdown that stops at 00:00
+            Group {
+                if targetTime > Date() {
+                    Text(targetTime, style: .timer)
+                } else {
+                    Text("00:00")
+                }
+            }
+            .font(.custom("Nunito-SemiBold", size: 22))
+            .monospacedDigit()
+            .multilineTextAlignment(.trailing)
+            .frame(minWidth: 70, alignment: .trailing)
+            .foregroundStyle(Color(hex: "#d4892e"))
+            .contentTransition(.identity)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
         .background(
             RoundedRectangle(cornerRadius: 20)
                 .fill(Color(hex: "#feecd3").opacity(0.95))
@@ -245,40 +266,50 @@ struct DynamicIslandExpandedPreview: View {
     let prayerIcon: String
     let targetTime: Date
     let formattedTime: String
+    let minutesRemaining: Int
 
     var body: some View {
         HStack {
-            // Left side - Prayer info
-            HStack(spacing: 6) {
-                Image(systemName: prayerIcon)
-                    .foregroundColor(Color(hex: "#fab555"))
-                    .font(.system(size: 20, weight: .semibold))
-
-                VStack(alignment: .leading, spacing: 2) {
+            // Left side - Two lines: Prayer name, then time
+            VStack(alignment: .leading, spacing: 2) {
+                // Line 1: Icon + Prayer name
+                HStack(spacing: 6) {
+                    Image(systemName: prayerIcon)
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(hex: "#fab555"))
                     Text(prayerName)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundColor(.white)
-                    Text(formattedTime)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.white.opacity(0.8))
-                        .monospacedDigit()
+                        .font(.custom("Nunito-SemiBold", size: 16))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
                 }
+                // Line 2: Prayer time
+                Text(formattedTime)
+                    .font(.custom("Nunito-Regular", size: 13))
+                    .foregroundStyle(.gray)
+                    .lineLimit(1)
             }
 
             Spacer()
 
-            // Right side - Large Timer
-            Text(targetTime, style: .timer)
-                .font(.system(size: 42, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundColor(Color(hex: "#fab555"))
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            // Right side - Auto-updating countdown that stops at 00:00
+            Group {
+                if targetTime > Date() {
+                    Text(targetTime, style: .timer)
+                } else {
+                    Text("00:00")
+                }
+            }
+            .font(.custom("Nunito-SemiBold", size: 28))
+            .monospacedDigit()
+            .foregroundStyle(Color(hex: "#fab555"))
+            .lineLimit(1)
+            .minimumScaleFactor(0.7)
+            .contentTransition(.identity)
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 16)
+        .padding(.vertical, 14)
         .background(
-            RoundedRectangle(cornerRadius: 40)
+            RoundedRectangle(cornerRadius: 44)
                 .fill(Color.black)
         )
     }
@@ -289,31 +320,36 @@ struct DynamicIslandCompactPreview: View {
     let prayerName: String
     let prayerIcon: String
     let targetTime: Date
+    let minutesRemaining: Int
 
     var body: some View {
-        HStack(spacing: 0) {
-            // Left side - Prayer icon
+        HStack(spacing: 8) {
+            // Left pill - Icon
             Image(systemName: prayerIcon)
-                .foregroundColor(Color(hex: "#fab555"))
-                .font(.system(size: 12, weight: .semibold))
-                .frame(width: 40)
+                .font(.system(size: 14))
+                .foregroundStyle(Color(hex: "#fab555"))
+                .frame(width: 16, height: 16)
+                .padding(10)
+                .background(Capsule().fill(Color.black))
 
-            Spacer()
-
-            // Right side - Countdown timer
-            Text(targetTime, style: .timer)
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .monospacedDigit()
-                .foregroundColor(Color(hex: "#fab555"))
-                .frame(width: 45)
+            // Right pill - Auto-updating timer that stops at 00:00
+            Group {
+                if targetTime > Date() {
+                    Text(targetTime, style: .timer)
+                } else {
+                    Text("00:00")
+                }
+            }
+            .font(.system(size: 13, weight: .semibold, design: .rounded))
+            .monospacedDigit()
+            .foregroundStyle(Color(hex: "#fab555"))
+            .minimumScaleFactor(0.8)
+            .lineLimit(1)
+            .contentTransition(.identity)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .background(Capsule().fill(Color.black))
         }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .background(
-            Capsule()
-                .fill(Color.black)
-        )
-        .frame(maxWidth: 180)
     }
 }
 
@@ -323,13 +359,10 @@ struct DynamicIslandMinimalPreview: View {
 
     var body: some View {
         Image(systemName: prayerIcon)
-            .foregroundColor(Color(hex: "#fab555"))
-            .font(.system(size: 11, weight: .semibold))
-            .frame(width: 36, height: 36)
-            .background(
-                Circle()
-                    .fill(Color.black)
-            )
+            .font(.system(size: 11))
+            .foregroundStyle(Color(hex: "#fab555"))
+            .padding(6)
+            .background(Circle().fill(Color.black))
     }
 }
 

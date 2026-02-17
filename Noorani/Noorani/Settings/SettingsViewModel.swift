@@ -16,6 +16,7 @@ class SettingsViewModel: ObservableObject {
     @Published var showingCalculationView = false
     @Published var showingCalendarView = false
     @Published var showingNotificationsView = false
+    @Published var showingLiveActivitiesView = false
     @Published var showingAboutView = false
     @Published var showingResetAlert = false
     
@@ -39,7 +40,11 @@ class SettingsViewModel: ObservableObject {
     func showNotificationsView() {
         showingNotificationsView = true
     }
-    
+
+    func showLiveActivitiesView() {
+        showingLiveActivitiesView = true
+    }
+
     func showAboutView() {
         showingAboutView = true
     }

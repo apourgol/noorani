@@ -353,7 +353,21 @@ final class NotificationScheduler {
         }
     }
 
-    // MARK: - Extended 30-Day Notification Scheduling
+    // MARK: - Extended 7-Day Notification Scheduling
+
+    /// Calculate priority for notifications (higher = more important)
+    private func calculateSimplePriority(date: Date, prayer: String) -> Int {
+        let calendar = Calendar.current
+        let daysFromNow = calendar.dateComponents([.day], from: Date(), to: date).day ?? 0
+
+        // Closer dates = higher priority (max 700 bonus for today, decreasing by 100 per day)
+        let recencyBonus = max(0, 7 - daysFromNow) * 100
+
+        // Fajr slightly higher priority (most time-sensitive)
+        let prayerBonus = (prayer == "Fajr") ? 50 : 0
+
+        return 1000 + recencyBonus + prayerBonus
+    }
 
     func scheduleMonthOfNotifications(monthPrayerTimes: [Date: [String: Date]]) {
         guard UserDefaults.standard.bool(forKey: "notificationsEnabled") else { return }
@@ -362,12 +376,14 @@ final class NotificationScheduler {
         let calendar = Calendar.current
         let now = Date()
         let sortedDates = monthPrayerTimes.keys.sorted()
-        let maxNotifications = 61
+        let targetDates = Array(sortedDates.prefix(7)) // Limit to 7 days
+        let maxNotifications = 57 // Leave room for 1 refresh reminder at day 5
         var allPotentialNotifications: [(request: UNNotificationRequest, priority: Int, date: Date)] = []
 
-        for (index, date) in sortedDates.enumerated() {
+        print("📱 Scheduling notifications for \(targetDates.count) days")
+
+        for date in targetDates {
             guard let dayPrayerTimes = monthPrayerTimes[date] else { continue }
-            let datePriority = sortedDates.count - index
 
             // 1. Add START notifications
             for prayer in ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"] {
@@ -390,7 +406,7 @@ final class NotificationScheduler {
                     offset: offset,
                     dayDate: date
                 ) {
-                    let priority = datePriority * 10 + 5
+                    let priority = calculateSimplePriority(date: date, prayer: prayer)
                     allPotentialNotifications.append((request, priority, date))
                 }
             }
@@ -415,7 +431,7 @@ final class NotificationScheduler {
                        offset: offset,
                        dayDate: date
                    ) {
-                    allPotentialNotifications.append((request, datePriority * 10 + 3, date))
+                    allPotentialNotifications.append((request, 500, date))
                 }
             }
 
@@ -440,7 +456,7 @@ final class NotificationScheduler {
                         offset: offset,
                         dayDate: date
                     ) {
-                        allPotentialNotifications.append((request, datePriority * 10 + 3, date))
+                        allPotentialNotifications.append((request, 500, date))
                     }
                 }
             }
@@ -466,7 +482,7 @@ final class NotificationScheduler {
                         offset: offset,
                         dayDate: date
                     ) {
-                        allPotentialNotifications.append((request, datePriority * 10 + 3, date))
+                        allPotentialNotifications.append((request, 500, date))
                     }
                 }
             }
@@ -479,17 +495,12 @@ final class NotificationScheduler {
             notificationRequests.append(notification.request)
         }
 
-        // Add reminders
-        if sortedDates.count >= 28 {
-            let day28 = sortedDates[min(27, sortedDates.count - 1)]
-            if let reminderRequest = createRefreshReminderNotification(for: day28) {
+        // Add refresh reminder at day 5 (for 7-day window)
+        if targetDates.count >= 5 {
+            let day5 = targetDates[4] // 0-indexed, so day 5 is index 4
+            if let reminderRequest = createRefreshReminderNotification(for: day5) {
                 notificationRequests.append(reminderRequest)
-            }
-        }
-        if sortedDates.count >= 30 {
-            let day30 = sortedDates[min(29, sortedDates.count - 1)]
-            if let finalRequest = createFinalReminderNotification(for: day30) {
-                notificationRequests.append(finalRequest)
+                print("📅 Scheduled refresh reminder for day 5")
             }
         }
 
@@ -597,8 +608,8 @@ final class NotificationScheduler {
 
     private func createRefreshReminderNotification(for date: Date) -> UNNotificationRequest? {
         let content = UNMutableNotificationContent()
-        content.title = "Prayer Notifications Expiring Soon"
-        content.body = "Open Noorani to refresh your prayer notifications for the next 30 days"
+        content.title = "Refresh Prayer Notifications"
+        content.body = "Open Noorani to continue receiving prayer time notifications"
         content.sound = .default
         content.badge = 0
         content.userInfo = ["notificationType": "refreshReminder"]

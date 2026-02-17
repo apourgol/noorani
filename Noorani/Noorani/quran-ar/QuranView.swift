@@ -73,8 +73,8 @@ struct QuranView: View {
                             }
                             .padding(.horizontal, 20)
                             
-                        } else if quranManager.surahs.isEmpty {
-                            // 📋 Empty State (no surahs loaded)
+                        } else if !quranManager.isLoading && quranManager.surahs.isEmpty {
+                            // 📋 Empty State (no surahs loaded, and not currently loading)
                             VStack(spacing: 20) {
                                 Image(systemName: "book.closed")
                                     .font(.system(size: 60))

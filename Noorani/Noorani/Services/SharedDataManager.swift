@@ -5,37 +5,27 @@
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
-// LIVE ACTIVITIES/WIDGETS DISABLED - ENTIRE FILE COMMENTED OUT
-// This service shares data with widgets/Live Activities via App Groups
-// We're using local notifications only now
-
 import Foundation
 
-/*
-/// Manages shared data between main app and widget extension via App Groups
-/// Used for sharing prayer times and user preferences with Live Activity widget
+/// Manages shared data for background tasks and future widget support
+/// Stores prayer times and user preferences for background access
 class SharedDataManager {
     static let shared = SharedDataManager()
 
-    // IMPORTANT: Replace with your actual App Group identifier
-    // Format: group.{your-bundle-id}
-    // Example: group.com.apbros.noorani
-    private let appGroupIdentifier = "group.com.apbros.noorani"
+    // Use App Groups for widget/extension data sharing
+    private let appGroupId = "group.com.apbros.noorani"
 
-    private var sharedDefaults: UserDefaults? {
-        UserDefaults(suiteName: appGroupIdentifier)
+    private var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: appGroupId) ?? UserDefaults.standard
     }
 
     private init() {}
 
     // MARK: - Prayer Times
 
-    /// Save prayer times for widget to access
+    /// Save prayer times for background access
     func savePrayerTimes(_ prayerTimes: [String: Date]) {
-        guard let defaults = sharedDefaults else {
-            print("SharedDataManager: App Group not configured")
-            return
-        }
+        let defaults = sharedDefaults
 
         // Convert Date to TimeInterval for storage
         var timeIntervals: [String: TimeInterval] = [:]
@@ -45,17 +35,13 @@ class SharedDataManager {
 
         defaults.set(timeIntervals, forKey: "prayerTimes")
         defaults.set(Date().timeIntervalSince1970, forKey: "prayerTimesUpdatedAt")
-        defaults.synchronize()
 
-        print("SharedDataManager: Saved prayer times to App Group")
+        print("✅ SharedDataManager: Saved prayer times")
     }
 
-    /// Load prayer times from shared container
+    /// Load prayer times from shared storage
     func loadPrayerTimes() -> [String: Date]? {
-        guard let defaults = sharedDefaults else {
-            print("SharedDataManager: App Group not configured")
-            return nil
-        }
+        let defaults = sharedDefaults
 
         guard let timeIntervals = defaults.dictionary(forKey: "prayerTimes") as? [String: TimeInterval] else {
             return nil
@@ -69,74 +55,32 @@ class SharedDataManager {
         return prayerTimes
     }
 
-    // MARK: - User Preferences
-
-    /// Save user preferences for widget
-    func saveUserPreferences(
-        liveActivitiesEnabled: Bool,
-        liveActivityStartOffset: Int,
-        fajrEnabled: Bool,
-        dhuhrEnabled: Bool,
-        asrEnabled: Bool,
-        maghribEnabled: Bool,
-        ishaEnabled: Bool
-    ) {
-        guard let defaults = sharedDefaults else {
-            print("SharedDataManager: App Group not configured")
-            return
-        }
-
-        defaults.set(liveActivitiesEnabled, forKey: "liveActivitiesEnabled")
-        defaults.set(liveActivityStartOffset, forKey: "liveActivityStartOffset")
-        defaults.set(fajrEnabled, forKey: "fajrLiveActivity")
-        defaults.set(dhuhrEnabled, forKey: "dhuhrLiveActivity")
-        defaults.set(asrEnabled, forKey: "asrLiveActivity")
-        defaults.set(maghribEnabled, forKey: "maghribLiveActivity")
-        defaults.set(ishaEnabled, forKey: "ishaLiveActivity")
-        defaults.synchronize()
-
-        print("SharedDataManager: Saved user preferences to App Group")
-    }
-
-    /// Load Live Activity enabled status
-    func isLiveActivitiesEnabled() -> Bool {
-        sharedDefaults?.bool(forKey: "liveActivitiesEnabled") ?? false
-    }
-
-    /// Load Live Activity start offset
-    func getLiveActivityStartOffset() -> Int {
-        sharedDefaults?.object(forKey: "liveActivityStartOffset") as? Int ?? 30
-    }
-
     // MARK: - Next Prayer Info
 
-    /// Save next prayer information for quick widget access
+    /// Save next prayer information for background access
     func saveNextPrayerInfo(
         name: String,
         time: Date,
         icon: String
     ) {
-        guard let defaults = sharedDefaults else {
-            print("SharedDataManager: App Group not configured")
-            return
-        }
+        let defaults = sharedDefaults
 
         defaults.set(name, forKey: "nextPrayerName")
         defaults.set(time.timeIntervalSince1970, forKey: "nextPrayerTime")
         defaults.set(icon, forKey: "nextPrayerIcon")
-        defaults.synchronize()
 
-        print("SharedDataManager: Saved next prayer info to App Group")
+        print("✅ SharedDataManager: Saved next prayer info (\(name))")
     }
 
     /// Load next prayer name
     func getNextPrayerName() -> String? {
-        sharedDefaults?.string(forKey: "nextPrayerName")
+        sharedDefaults.string(forKey: "nextPrayerName")
     }
 
     /// Load next prayer time
     func getNextPrayerTime() -> Date? {
-        guard let interval = sharedDefaults?.double(forKey: "nextPrayerTime"), interval > 0 else {
+        let interval = sharedDefaults.double(forKey: "nextPrayerTime")
+        guard interval > 0 else {
             return nil
         }
         return Date(timeIntervalSince1970: interval)
@@ -144,31 +88,96 @@ class SharedDataManager {
 
     /// Load next prayer icon
     func getNextPrayerIcon() -> String? {
-        sharedDefaults?.string(forKey: "nextPrayerIcon")
+        sharedDefaults.string(forKey: "nextPrayerIcon")
     }
 
-    // MARK: - Location
+    // MARK: - Live Activities Support
 
-    /// Save user location for widget
-    func saveLocation(latitude: Double, longitude: Double, cityName: String?) {
-        guard let defaults = sharedDefaults else {
-            print("SharedDataManager: App Group not configured")
-            return
-        }
-
-        defaults.set(latitude, forKey: "userLatitude")
-        defaults.set(longitude, forKey: "userLongitude")
-        if let city = cityName {
-            defaults.set(city, forKey: "userCityName")
-        }
-        defaults.synchronize()
-
-        print("SharedDataManager: Saved location to App Group")
+    /// Save Live Activities master toggle preference
+    func saveLiveActivityPreference(enabled: Bool) {
+        sharedDefaults.set(enabled, forKey: "liveActivitiesEnabled")
+        print("✅ SharedDataManager: Live Activities enabled = \(enabled)")
     }
 
-    /// Load user city name
-    func getUserCityName() -> String? {
-        sharedDefaults?.string(forKey: "userCityName")
+    /// Check if Live Activities are enabled
+    func isLiveActivitiesEnabled() -> Bool {
+        sharedDefaults.bool(forKey: "liveActivitiesEnabled")
+    }
+
+    /// Alias for isLiveActivitiesEnabled (used by ContentView)
+    func areLiveActivitiesEnabled() -> Bool {
+        isLiveActivitiesEnabled()
+    }
+
+    /// Map prayer names to their main prayer equivalents for settings lookup
+    /// Sunset → Maghrib, Sunrise → Fajr, Midnight → Isha
+    private func mapPrayerName(_ prayer: String) -> String {
+        switch prayer.lowercased() {
+        case "sunset":
+            return "maghrib"
+        case "sunrise":
+            return "fajr"
+        case "midnight":
+            return "isha"
+        default:
+            return prayer.lowercased()
+        }
+    }
+
+    /// Save per-prayer Live Activity toggle
+    func savePrayerLiveActivityEnabled(prayer: String, enabled: Bool) {
+        let key = "\(mapPrayerName(prayer))LiveActivityEnabled"
+        sharedDefaults.set(enabled, forKey: key)
+    }
+
+    /// Check if Live Activity is enabled for a specific prayer
+    func isPrayerLiveActivityEnabled(prayer: String) -> Bool {
+        let key = "\(mapPrayerName(prayer))LiveActivityEnabled"
+        // Default to true if not set
+        return sharedDefaults.object(forKey: key) == nil ? true : sharedDefaults.bool(forKey: key)
+    }
+
+    /// Save Live Activity time offset for a prayer (minutes before prayer)
+    func savePrayerLiveActivityOffset(prayer: String, minutes: Int) {
+        let key = "\(mapPrayerName(prayer))LiveActivityOffset"
+        sharedDefaults.set(minutes, forKey: key)
+    }
+
+    /// Get Live Activity time offset for a prayer (minutes before prayer)
+    func getPrayerLiveActivityOffset(prayer: String) -> Int {
+        let key = "\(mapPrayerName(prayer))LiveActivityOffset"
+        let offset = sharedDefaults.integer(forKey: key)
+        // Default to 30 minutes if not set
+        return offset > 0 ? offset : 30
+    }
+
+    /// Check if Live Activity should start for a prayer based on settings and time window
+    func shouldStartLiveActivity(prayerName: String, targetTime: Date) -> Bool {
+        // Check master toggle
+        guard isLiveActivitiesEnabled() else {
+            return false
+        }
+
+        // Check per-prayer toggle (uses mapped prayer name)
+        guard isPrayerLiveActivityEnabled(prayer: prayerName) else {
+            return false
+        }
+
+        // Check time window (uses mapped prayer name)
+        let offsetMinutes = getPrayerLiveActivityOffset(prayer: prayerName)
+        let timeUntilPrayer = targetTime.timeIntervalSince(Date())
+
+        // Activity should start if we're within the offset window and before prayer time
+        return timeUntilPrayer > 0 && timeUntilPrayer <= TimeInterval(offsetMinutes * 60)
+    }
+
+    /// Save time format preference (12 or 24 hour)
+    func saveTimeFormat(_ format: String) {
+        sharedDefaults.set(format, forKey: "timeFormat")
+    }
+
+    /// Get time format preference
+    func getTimeFormat() -> String {
+        sharedDefaults.string(forKey: "timeFormat") ?? "12"
     }
 }
-*/

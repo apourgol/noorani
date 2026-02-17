@@ -151,8 +151,9 @@ class PrayerTimesFetcher: ObservableObject {
     @AppStorage("currentLat") var currentLat: Double = 0.0
     @AppStorage("currentLng") var currentLng: Double = 0.0
     @AppStorage("lastFetchDate") private var lastFetchDate: String = ""
+    @AppStorage("lastWeeklyCacheFetch") private var lastWeeklyCacheFetch: String = "" // Track weekly cache refresh
     @AppStorage("selectedMethodId") private var selectedMethodId: Int = 7 // Default to TEHRAN for Shia
-    private var nextPrayerTime: Date?
+    @Published var nextPrayerTime: Date?
     private var timer: Timer?
 
     // Cache formatters to avoid recreating them
@@ -181,12 +182,23 @@ class PrayerTimesFetcher: ObservableObject {
         loadDefaultMethods()
         setSelectedMethod()
 
-        // Try to load cached prayer times for today
+        // Try to load cached prayer times for today immediately
         // Don't set isShowingCachedData yet - wait to see if network fetch succeeds
         if loadCachedPrayerTimes(for: Date()) {
             print("✅ Loaded cached prayer times from storage")
             updateNextPrayer()
         }
+
+        // Fetch weekly cache in background (non-blocking)
+        Task(priority: .utility) {
+            if await shouldFetchWeeklyCache() {
+                print("📅 Starting background weekly cache fetch...")
+                _ = await fetchWeeklyPrayerCache()
+            } else {
+                print("📅 Weekly cache is still valid, skipping fetch")
+            }
+        }
+
         // Don't set isLoading here - it prevents fetches from starting!
         // SplashScreenView handles the initial loading state
     }
@@ -557,6 +569,47 @@ class PrayerTimesFetcher: ObservableObject {
         return false
     }
 
+    /// Check if we should fetch the weekly prayer cache
+    private func shouldFetchWeeklyCache() async -> Bool {
+        let lastFetch = lastWeeklyCacheFetch
+
+        if lastFetch.isEmpty {
+            print("📅 No weekly cache fetch recorded, should fetch")
+            return true // Never fetched
+        }
+
+        let daysSince = calculateDaysSince(lastFetch)
+        let remainingCachedDays = countRemainingCachedDays()
+
+        print("📅 Days since last weekly fetch: \(daysSince), Remaining cached days: \(remainingCachedDays)")
+
+        // Refresh if >3 days since last fetch OR <3 days remaining in cache
+        return daysSince >= 3 || remainingCachedDays < 3
+    }
+
+    /// Count how many days of cached prayer times remain from today onwards
+    private func countRemainingCachedDays() -> Int {
+        let today = Date()
+        let cachedDates = getCachedDates()
+
+        let remainingCount = cachedDates.filter { dateString in
+            if let date = apiDateFormatter.date(from: dateString) {
+                return date >= today
+            }
+            return false
+        }.count
+
+        return remainingCount
+    }
+
+    /// Calculate days elapsed since a date string
+    private func calculateDaysSince(_ dateString: String) -> Int {
+        guard let date = apiDateFormatter.date(from: dateString) else {
+            return 999 // Force refresh if invalid
+        }
+        return Calendar.current.dateComponents([.day], from: date, to: Date()).day ?? 999
+    }
+
     func fetchPrayerTimes(latitude: Double, longitude: Double) async {
         // Prevent multiple concurrent requests
         if isLoading {
@@ -705,8 +758,8 @@ class PrayerTimesFetcher: ObservableObject {
 
         // Defer heavy notification scheduling to avoid blocking UI
         // This ensures prayer times appear instantly on first launch
-        if lastScheduledDate == 0 || daysSinceLastSchedule > 7 {
-            print("📅 Deferring 30-day notification fetch to background...")
+        if lastScheduledDate == 0 || daysSinceLastSchedule > 3 {
+            print("📅 Deferring 7-day notification fetch to background...")
 
             // Delay 5 seconds to ensure UI is fully rendered
             DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) { [weak self] in
@@ -1255,6 +1308,32 @@ class PrayerTimesFetcher: ObservableObject {
             print("❌ Error fetching next month: \(error)")
             return [:]
         }
+    }
+
+    /// Fetch 7 days of prayer times for offline caching
+    func fetchWeeklyPrayerCache() async -> Bool {
+        print("📅 Fetching 7-day prayer cache...")
+
+        // Use existing fetchMonthOfPrayerTimes() but filter to 7 days
+        let monthData = await fetchMonthOfPrayerTimes()
+        let today = Date()
+        guard let sevenDaysLater = Calendar.current.date(byAdding: .day, value: 7, to: today) else {
+            return false
+        }
+
+        let weekData = monthData.filter { date, _ in
+            date >= today && date <= sevenDaysLater
+        }
+
+        if !weekData.isEmpty {
+            // Use existing cacheMultipleDays() method
+            cacheMultipleDays(weekData)
+            lastWeeklyCacheFetch = apiDateFormatter.string(from: Date())
+            print("✅ Cached \(weekData.count) days of prayer times")
+            return true
+        }
+
+        return false
     }
 
     private func format(_ interval: TimeInterval) -> String {

@@ -4,337 +4,409 @@
 //  Copyright © 2025 AP Bros. All rights reserved.
 //
 
-// LIVE ACTIVITIES DISABLED - ENTIRE FILE COMMENTED OUT
-// This service manages Live Activities which we've removed
-// We're using local notifications only now
-
 import Foundation
-// import ActivityKit
-import UserNotifications
+import ActivityKit
 
-/*
 /// Manages Live Activities for prayer countdown timers
+/// Rebuilt following LivePolls best practices with App Group storage
 @available(iOS 16.1, *)
-final class LiveActivityManager {
+@MainActor
+final class LiveActivityManager: ObservableObject {
 
     // MARK: - Singleton
     static let shared = LiveActivityManager()
 
-    private init() {}
+    // MARK: - Published State
+    @Published private(set) var currentActivity: Activity<PrayerCountdownAttributes>?
+    @Published private(set) var isActivityActive: Bool = false
 
-    // MARK: - Properties
-
-    /// Currently active prayer countdown activity
-    private var currentActivity: Activity<PrayerCountdownAttributes>?
-
-    /// Timer for scheduling Live Activity starts
-    private var scheduledTimers: [Timer] = []
-
-    // MARK: - Public Methods
-
-    /// Schedule Live Activities for all upcoming prayers
-    func scheduleAllLiveActivities(
-        prayerTimes: [String: Date],
-        tomorrowPrayerTimes: [String: Date] = [:]
-    ) {
-        guard UserDefaults.standard.bool(forKey: "liveActivitiesEnabled") else {
-            print("LiveActivityManager: Live Activities disabled, skipping scheduling")
-            return
-        }
-
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("LiveActivityManager: Live Activities not authorized")
-            return
-        }
-
-        // Cancel existing scheduled timers
-        cancelAllScheduledTimers()
-
-        let startOffset = UserDefaults.standard.object(forKey: "liveActivityStartOffset") as? Int ?? 30
-        let calendar = Calendar.current
-        let now = Date()
-
-        // Schedule Live Activities for each prayer
-        for (prayerName, prayerTime) in prayerTimes {
-            // CRITICAL: Check if prayer is visible in app settings first
-            guard isPrayerVisible(prayerName) else {
-                print("LiveActivityManager: Skipping \(prayerName) - prayer is hidden in settings")
-                continue
-            }
-
-            guard shouldScheduleLiveActivity(for: prayerName) else { continue }
-
-            // Calculate when to start the Live Activity
-            let activityStartTime = calendar.date(
-                byAdding: .minute,
-                value: -startOffset,
-                to: prayerTime
-            ) ?? prayerTime
-
-            // Only schedule if start time is in the future
-            if activityStartTime > now {
-                scheduleActivityStart(
-                    for: prayerName,
-                    startAt: activityStartTime,
-                    prayerTime: prayerTime
-                )
-            } else if prayerTime > now {
-                // Prayer is coming up but start time has passed, start immediately
-                startLiveActivity(for: prayerName, targetTime: prayerTime)
-            }
-        }
-
-        print("LiveActivityManager: Scheduled Live Activities with \(startOffset)m offset")
+    // MARK: - App Group Storage (Critical for widget/background sync)
+    private let appGroupId = "group.com.apbros.noorani"
+    private var sharedDefaults: UserDefaults {
+        UserDefaults(suiteName: appGroupId) ?? UserDefaults.standard
     }
 
+    // MARK: - Debouncing
+    private var lastStartAttempt: Date?
+    private let debounceInterval: TimeInterval = 3.0
+
+    // MARK: - Retry Logic
+    private var retryCount = 0
+    private let maxRetries = 3
+
+    // MARK: - Timer Update Task
+    private var updateTask: Task<Void, Never>?
+    private var targetTimeTask: Task<Void, Never>?
+
+    private init() {
+        reuseExistingActivityIfAvailable()
+        cleanupOldDismissals()
+    }
+
+    /// Clear all dismissals - call when user opens app to allow Live Activities to restart
+    func clearAllDismissals() {
+        for key in sharedDefaults.dictionaryRepresentation().keys {
+            if key.hasPrefix("dismissed_") {
+                sharedDefaults.removeObject(forKey: key)
+            }
+        }
+        print("🧹 Cleared all dismissals - Live Activities can restart")
+    }
+
+    /// Clear dismissal for a specific prayer
+    func clearDismissal(for prayerName: String, targetTime: Date) {
+        let prayerId = generatePrayerId(prayerName: prayerName, targetTime: targetTime)
+        sharedDefaults.removeObject(forKey: "dismissed_\(prayerId)")
+        print("🧹 Cleared dismissal for \(prayerName)")
+    }
+
+    // MARK: - Authorization
+
+    /// Check if Live Activities are authorized
+    func checkAuthorization() -> Bool {
+        ActivityAuthorizationInfo().areActivitiesEnabled
+    }
+
+    // MARK: - Start Activity
+
     /// Start a Live Activity for a specific prayer
+    /// - Parameters:
+    ///   - prayerName: Name of the prayer (e.g., "Fajr", "Dhuhr")
+    ///   - targetTime: The time when the prayer starts
     func startLiveActivity(for prayerName: String, targetTime: Date) {
-        guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            print("LiveActivityManager: Live Activities not authorized")
+        // 1. Authorization check
+        guard checkAuthorization() else {
+            print("❌ Live Activities not authorized")
             return
         }
 
-        // Prevent duplicate activities - check if one already exists
-        let existingActivities = Activity<PrayerCountdownAttributes>.activities
-        if !existingActivities.isEmpty {
-            print("LiveActivityManager: Activity already running, ending existing first...")
-            // End all existing activities synchronously before starting new one
-            Task {
-                for activity in existingActivities {
-                    await activity.end(nil, dismissalPolicy: .immediate)
-                }
-            }
+        // 2. Debounce rapid requests
+        if let lastAttempt = lastStartAttempt,
+           Date().timeIntervalSince(lastAttempt) < debounceInterval {
+            print("⏭️ Debounced: Too soon after last request")
+            return
+        }
+        lastStartAttempt = Date()
+
+        // 3. Generate unique prayer ID
+        let prayerId = generatePrayerId(prayerName: prayerName, targetTime: targetTime)
+
+        // 4. Check for existing activity (LivePolls pattern)
+        if let existing = Activity<PrayerCountdownAttributes>.activities.first(where: {
+            $0.attributes.prayerId == prayerId
+        }) {
+            print("♻️ Reusing existing activity for \(prayerName)")
+            currentActivity = existing
+            isActivityActive = true
+            return
         }
 
-        // End any existing tracked activity
-        endCurrentActivity()
-
-        // Format prayer time
-        let timeFormatter = DateFormatter()
-        let timeFormat = UserDefaults.standard.string(forKey: "timeFormat") ?? "12"
-        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
-        if timeFormat == "24" {
-            timeFormatter.dateFormat = "HH:mm"
-        } else {
-            timeFormatter.dateFormat = "h:mm a"
+        // 5. Check user dismissal (using App Group!)
+        if sharedDefaults.bool(forKey: "dismissed_\(prayerId)") {
+            print("⏭️ User dismissed this prayer, respecting dismissal")
+            return
         }
-        let formattedTime = timeFormatter.string(from: targetTime)
 
-        // Create attributes
-        let attributes = PrayerCountdownAttributes(
-            prayerIcon: PrayerCountdownAttributes.icon(for: prayerName),
-            colorTheme: PrayerCountdownAttributes.colorTheme(for: prayerName),
-            formattedPrayerTime: formattedTime,
-            isExpirationWarning: false
-        )
+        // 6. End any current activity for different prayer
+        if currentActivity != nil {
+            endCurrentActivity()
+        }
 
-        // Create initial content state
-        let remainingSeconds = Int(targetTime.timeIntervalSince(Date()))
-        let initialState = PrayerCountdownAttributes.ContentState(
+        // 7. Create activity with 8-hour stale date (LivePolls pattern)
+        let attributes = PrayerCountdownAttributes(prayerId: prayerId)
+
+        // Note: remainingSeconds kept for backwards compatibility but native timer handles display
+        let remainingSeconds = max(0, Int(targetTime.timeIntervalSinceNow))
+        let contentState = PrayerCountdownAttributes.ContentState(
             prayerName: prayerName,
             targetTime: targetTime,
-            remainingSeconds: max(0, remainingSeconds),
-            showTimer: true,
-            message: nil
+            formattedTime: formatTime(targetTime),
+            remainingSeconds: remainingSeconds,
+            updatedAt: Date()
         )
 
-        // Configure activity content
-        let content = ActivityContent(
-            state: initialState,
-            staleDate: targetTime.addingTimeInterval(60) // Stale 1 minute after prayer time
-        )
+        let staleDate = Calendar.current.date(byAdding: .hour, value: 8, to: Date())!
+        let content = ActivityContent(state: contentState, staleDate: staleDate)
 
         do {
-            let activity = try Activity.request(
+            let activity = try Activity<PrayerCountdownAttributes>.request(
                 attributes: attributes,
                 content: content,
-                pushType: .token // Enable remote push-to-start from Cloud Functions
+                pushType: nil  // Local only
             )
 
             currentActivity = activity
-            print("LiveActivityManager: Started Live Activity for \(prayerName) - ID: \(activity.id)")
-            print("LiveActivityManager: Push updates ENABLED for remote control")
+            isActivityActive = true
+            retryCount = 0
 
-            // Schedule automatic end when prayer time arrives
-            scheduleActivityEnd(at: targetTime)
+            // Monitor for dismissal
+            monitorActivityDismissal(activity: activity, prayerId: prayerId)
+
+            // Schedule periodic updates and target time update
+            scheduleUpdates(for: activity, targetTime: targetTime)
+
+            print("✅ Started Live Activity for \(prayerName)")
 
         } catch {
-            print("LiveActivityManager: Failed to start Live Activity - \(error.localizedDescription)")
+            print("❌ Failed to start Live Activity: \(error)")
+            handleStartFailure(prayerName: prayerName, targetTime: targetTime)
         }
     }
 
-    /// Update the current Live Activity's state
-    func updateLiveActivity(newState: PrayerCountdownAttributes.ContentState) {
-        guard let activity = currentActivity else {
-            print("LiveActivityManager: No active Live Activity to update")
-            return
-        }
+    /// Start with retry logic for reliability
+    func startLiveActivityWithRetry(for prayerName: String, targetTime: Date) {
+        retryCount = 0
+        attemptStart(prayerName: prayerName, targetTime: targetTime)
+    }
 
-        let content = ActivityContent(
-            state: newState,
-            staleDate: newState.targetTime.addingTimeInterval(60)
-        )
+    private func attemptStart(prayerName: String, targetTime: Date) {
+        startLiveActivity(for: prayerName, targetTime: targetTime)
 
-        Task {
-            await activity.update(content)
-            print("LiveActivityManager: Updated Live Activity state")
+        // If still no activity after start attempt, retry
+        if currentActivity == nil && retryCount < maxRetries {
+            retryCount += 1
+            let delay = pow(2.0, Double(retryCount - 1))  // 1s, 2s, 4s
+
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await MainActor.run {
+                    print("🔄 Retry attempt \(self.retryCount) for \(prayerName)")
+                    self.attemptStart(prayerName: prayerName, targetTime: targetTime)
+                }
+            }
         }
     }
 
-    /// End the current Live Activity
-    func endCurrentActivity(dismissalPolicy: ActivityUIDismissalPolicy = .default) {
+    private func handleStartFailure(prayerName: String, targetTime: Date) {
+        if retryCount < maxRetries {
+            retryCount += 1
+            let delay = pow(2.0, Double(retryCount - 1))
+
+            Task {
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                await MainActor.run {
+                    print("🔄 Auto-retry \(self.retryCount) after failure")
+                    self.startLiveActivity(for: prayerName, targetTime: targetTime)
+                }
+            }
+        } else {
+            print("❌ Failed to start Live Activity after \(maxRetries) attempts")
+        }
+    }
+
+    // MARK: - Activity Management
+
+    /// End the current Live Activity (called manually or when starting new activity)
+    func endCurrentActivity() {
         guard let activity = currentActivity else { return }
 
+        // Cancel update tasks
+        updateTask?.cancel()
+        targetTimeTask?.cancel()
+
         Task {
-            await activity.end(nil, dismissalPolicy: dismissalPolicy)
-            print("LiveActivityManager: Ended Live Activity - ID: \(activity.id)")
+            await activity.end(nil, dismissalPolicy: .immediate)
+            print("✅ Ended Live Activity")
         }
 
         currentActivity = nil
+        isActivityActive = false
     }
 
     /// End all Live Activities for the app
     func endAllActivities() {
+        // Cancel update tasks
+        updateTask?.cancel()
+        targetTimeTask?.cancel()
+
         Task {
             for activity in Activity<PrayerCountdownAttributes>.activities {
                 await activity.end(nil, dismissalPolicy: .immediate)
             }
-            print("LiveActivityManager: Ended all Live Activities")
+            print("✅ Ended all Live Activities")
         }
 
         currentActivity = nil
-        cancelAllScheduledTimers()
+        isActivityActive = false
     }
 
-    /// Cancel all scheduled Live Activity timers
-    func cancelAllScheduledTimers() {
-        scheduledTimers.forEach { $0.invalidate() }
-        scheduledTimers.removeAll()
-        print("LiveActivityManager: Cancelled all scheduled timers")
+    // MARK: - Private Helpers
+
+    /// Generate unique prayer ID from name and date
+    private func generatePrayerId(prayerName: String, targetTime: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+        return "\(prayerName.lowercased())_\(dateFormatter.string(from: targetTime))"
     }
 
-    /// Check if Live Activities are available and authorized
-    func checkAvailability() -> (available: Bool, authorized: Bool) {
-        let authorized = ActivityAuthorizationInfo().areActivitiesEnabled
-        return (available: true, authorized: authorized)
+    /// Format time for display
+    private func formatTime(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        let timeFormat = sharedDefaults.string(forKey: "timeFormat") ?? "12"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        if timeFormat == "24" {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+        }
+
+        return formatter.string(from: date)
     }
 
-    // MARK: - Private Methods
-
-    private func isPrayerVisible(_ prayer: String) -> Bool {
-        // Check if prayer is visible in user's prayer time settings
-        // Respects showAsr and showIsha settings
-        switch prayer.lowercased() {
-        case "asr":
-            return UserDefaults.standard.bool(forKey: "showAsr")
-        case "isha":
-            return UserDefaults.standard.bool(forKey: "showIsha")
-        default:
-            // All other prayers are always visible
-            return true
+    /// Check for existing activity on init
+    private func reuseExistingActivityIfAvailable() {
+        if let existing = Activity<PrayerCountdownAttributes>.activities.first {
+            currentActivity = existing
+            isActivityActive = true
+            print("♻️ Reused existing activity on init")
         }
     }
 
-    private func shouldScheduleLiveActivity(for prayer: String) -> Bool {
-        // Check if Live Activities are enabled for this specific prayer
-        // Uses separate settings from notifications for ultra customization
-        let key = "\(prayer.lowercased())LiveActivity"
+    /// Monitor activity for user dismissal
+    private func monitorActivityDismissal(activity: Activity<PrayerCountdownAttributes>, prayerId: String) {
+        Task {
+            for await state in activity.activityStateUpdates {
+                if state == .dismissed {
+                    // Use App Group storage for dismissal tracking
+                    sharedDefaults.set(true, forKey: "dismissed_\(prayerId)")
 
-        let defaultValue: Bool
-        switch prayer.lowercased() {
-        case "fajr", "dhuhr", "asr", "maghrib", "isha":
-            defaultValue = true
-        default:
-            defaultValue = false
+                    await MainActor.run {
+                        currentActivity = nil
+                        isActivityActive = false
+                    }
+                    print("👤 User dismissed activity, recorded in App Group")
+                    break
+                }
+            }
         }
-
-        return UserDefaults.standard.object(forKey: key) as? Bool ?? defaultValue
     }
 
-    private func scheduleActivityStart(
-        for prayerName: String,
-        startAt: Date,
-        prayerTime: Date
-    ) {
-        let timeInterval = startAt.timeIntervalSince(Date())
-        guard timeInterval > 0 else { return }
 
-        let timer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: false) { [weak self] _ in
-            self?.startLiveActivity(for: prayerName, targetTime: prayerTime)
+    /// Schedule periodic updates to keep the countdown fresh
+    private func scheduleUpdates(for activity: Activity<PrayerCountdownAttributes>, targetTime: Date) {
+        // Cancel any existing update tasks
+        updateTask?.cancel()
+        targetTimeTask?.cancel()
+
+        // Schedule an update at targetTime to freeze at 00:00
+        let timeUntilTarget = targetTime.timeIntervalSinceNow
+        if timeUntilTarget > 0 {
+            targetTimeTask = Task {
+                // Wait until target time
+                try? await Task.sleep(nanoseconds: UInt64(timeUntilTarget * 1_000_000_000))
+                guard !Task.isCancelled else { return }
+
+                // Update with a PAST targetTime so timer shows 00:00
+                await MainActor.run {
+                    freezeActivityAtZero(for: activity)
+                    print("⏰ Timer reached 00:00 - frozen!")
+                }
+            }
         }
 
-        scheduledTimers.append(timer)
-        print("LiveActivityManager: Scheduled \(prayerName) Live Activity to start at \(startAt)")
+        // Periodic updates every 30 seconds
+        updateTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+                guard !Task.isCancelled else { break }
+                await MainActor.run {
+                    guard let current = self.currentActivity else { return }
+                    // Only update if time hasn't passed yet
+                    if current.content.state.targetTime.timeIntervalSinceNow > 0 {
+                        self.refreshActivityContent(for: activity)
+                    }
+                }
+            }
+        }
     }
 
-    private func scheduleActivityEnd(at prayerTime: Date) {
-        let timeInterval = prayerTime.timeIntervalSince(Date())
-        guard timeInterval > 0 else { return }
+    /// Freeze the activity at 00:00 by setting targetTime to past
+    private func freezeActivityAtZero(for activity: Activity<PrayerCountdownAttributes>) {
+        // Set targetTime to 1 hour ago - this ensures the widget shows 00:00
+        let pastTime = Date().addingTimeInterval(-3600)
 
-        // Update activity to show "Prayer: Now" when time arrives
-        let nowTimer = Timer.scheduledTimer(withTimeInterval: timeInterval, repeats: false) { [weak self] _ in
-            self?.updateToNowState()
-        }
-        scheduledTimers.append(nowTimer)
-
-        // End activity 3 minutes after prayer time with smooth dismissal
-        let endTimer = Timer.scheduledTimer(withTimeInterval: timeInterval + 180, repeats: false) { [weak self] _ in
-            self?.endCurrentActivity(dismissalPolicy: .default)
-        }
-        scheduledTimers.append(endTimer)
-    }
-
-    /// Update Live Activity to show "Prayer: Now" state
-    private func updateToNowState() {
-        guard let activity = currentActivity else {
-            print("LiveActivityManager: No active Live Activity to update to Now state")
-            return
-        }
-
-        // Get current state
-        let currentState = activity.content.state
-
-        // Create new state with "Now" message
-        let nowState = PrayerCountdownAttributes.ContentState(
-            prayerName: currentState.prayerName,
-            targetTime: currentState.targetTime,
+        let frozenState = PrayerCountdownAttributes.ContentState(
+            prayerName: activity.content.state.prayerName,
+            targetTime: pastTime,  // PAST time = widget shows 00:00
+            formattedTime: activity.content.state.formattedTime,
             remainingSeconds: 0,
-            showTimer: false, // Hide timer, show "Now" message
-            message: "Now"
+            updatedAt: Date()
         )
 
-        let content = ActivityContent(
-            state: nowState,
-            staleDate: Date().addingTimeInterval(180) // Stale after 3 minutes
-        )
+        let content = ActivityContent(state: frozenState, staleDate: Date().addingTimeInterval(3600))
 
         Task {
             await activity.update(content)
-            print("LiveActivityManager: Updated to 'Now' state for \(currentState.prayerName)")
+            print("✅ Activity frozen at 00:00")
+        }
+    }
+
+    /// Refresh the activity content (normal update while counting down)
+    private func refreshActivityContent(for activity: Activity<PrayerCountdownAttributes>) {
+        let targetTime = activity.content.state.targetTime
+        let remainingSeconds = max(0, Int(targetTime.timeIntervalSinceNow))
+
+        let newState = PrayerCountdownAttributes.ContentState(
+            prayerName: activity.content.state.prayerName,
+            targetTime: targetTime,
+            formattedTime: activity.content.state.formattedTime,
+            remainingSeconds: remainingSeconds,
+            updatedAt: Date()
+        )
+
+        let content = ActivityContent(state: newState, staleDate: Date().addingTimeInterval(3600))
+
+        Task {
+            await activity.update(content)
+        }
+    }
+
+    /// Clean dismissals older than 24 hours
+    private func cleanupOldDismissals() {
+        let oneDayAgo = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+
+        for key in sharedDefaults.dictionaryRepresentation().keys {
+            if key.hasPrefix("dismissed_") {
+                // Extract date from prayerId (format: dismissed_fajr_2025-02-16)
+                let components = key.components(separatedBy: "_")
+                if components.count >= 3 {
+                    let dateStr = components[2]
+                    let formatter = DateFormatter()
+                    formatter.dateFormat = "yyyy-MM-dd"
+                    if let date = formatter.date(from: dateStr),
+                       date < oneDayAgo {
+                        sharedDefaults.removeObject(forKey: key)
+                        print("🧹 Cleaned old dismissal: \(key)")
+                    }
+                }
+            }
         }
     }
 }
 
-// MARK: - Fallback for older iOS versions
-@available(iOS, deprecated: 16.1, message: "Use LiveActivityManager for iOS 16.1+")
+// MARK: - Fallback for iOS < 16.1
 final class LiveActivityManagerFallback {
     static let shared = LiveActivityManagerFallback()
     private init() {}
 
-    func scheduleAllLiveActivities(prayerTimes: [String: Date], tomorrowPrayerTimes: [String: Date] = [:]) {
-        print("LiveActivityManager: Live Activities not available on this iOS version")
+    func startLiveActivity(for prayerName: String, targetTime: Date) {
+        print("⚠️ Live Activities not available on this iOS version")
     }
 
-    func startLiveActivity(for prayerName: String, targetTime: Date) {
-        print("LiveActivityManager: Live Activities not available on this iOS version")
+    func startLiveActivityWithRetry(for prayerName: String, targetTime: Date) {
+        print("⚠️ Live Activities not available on this iOS version")
     }
 
     func endAllActivities() {
         // No-op for older versions
     }
 
-    func checkAvailability() -> (available: Bool, authorized: Bool) {
-        return (available: false, authorized: false)
+    func endCurrentActivity() {
+        // No-op for older versions
+    }
+
+    func checkAuthorization() -> Bool {
+        return false
     }
 }
-*/
