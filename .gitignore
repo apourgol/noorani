@@ -60,3 +60,12 @@ fastlane/report.xml
 fastlane/Preview.html
 fastlane/screenshots/**/*.png
 fastlane/test_output
+functions/service-account-key.json
+functions/service-account-key.json
+**/*service-account*.json
+**/*credentials*.json
+
+# Service Account Keys
+functions/service-account-key.json
+**/service-account*.json
+**/*credentials*.json

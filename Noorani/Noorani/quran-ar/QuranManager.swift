@@ -13,7 +13,7 @@ import SwiftUI
 @MainActor
 class QuranManager: ObservableObject {
     @Published var surahs: [Surah] = []
-    @Published var isLoading = false
+    @Published var isLoading = true  // Start as true to prevent flash of error state
     @Published var errorMessage: String?
     
     private let surahRange = 1...114 // All surahs

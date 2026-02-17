@@ -2,7 +2,7 @@
 //  NotificationsView.swift
 //  Noorani
 //  Copyright © 2025 AP Bros. All rights reserved.
-   
+
 
 //
 
@@ -11,21 +11,18 @@ import UserNotifications
 
 struct NotificationsView: View {
     @ObservedObject var prayerFetcher: PrayerTimesFetcher
-    @AppStorage("notificationsEnabled") private var notificationsEnabled: Bool = false
-    @AppStorage("fajrNotification") private var fajrNotification: Bool = true
-    @AppStorage("sunriseNotification") private var sunriseNotification: Bool = false
-    @AppStorage("dhuhrNotification") private var dhuhrNotification: Bool = true
-    @AppStorage("asrNotification") private var asrNotification: Bool = true
-    @AppStorage("sunsetNotification") private var sunsetNotification: Bool = false
-    @AppStorage("maghribNotification") private var maghribNotification: Bool = true
-    @AppStorage("ishaNotification") private var ishaNotification: Bool = true
-    @AppStorage("midnightNotification") private var midnightNotification: Bool = false
-    @AppStorage("notificationOffset") private var notificationOffset: Int = 0 // Minutes before prayer
-    @AppStorage("expirationNotificationOffset") private var expirationNotificationOffset: Int = 15 // Minutes before expiration
-    
+    @StateObject private var viewModel = NotificationsViewModel()
     @Environment(\.dismiss) private var dismiss
-    @State private var showingPermissionAlert = false
-    
+    // LIVE ACTIVITIES DISABLED
+    // @State private var showingLiveActivityPreview = false
+
+    // Expansion state for per-prayer detail views
+    @State private var fajrExpanded = false
+    @State private var dhuhrExpanded = false
+    @State private var asrExpanded = false
+    @State private var maghribExpanded = false
+    @State private var ishaExpanded = false
+
     var body: some View {
         ZStack {
             // Same gradient as home screen
@@ -39,7 +36,7 @@ struct NotificationsView: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea(.all, edges: .vertical)
-            
+
             VStack(alignment: .leading, spacing: 0) {
                 // Header
                 HStack {
@@ -48,183 +45,59 @@ struct NotificationsView: View {
                             .foregroundColor(.white)
                             .font(.system(size: 18, weight: .medium))
                     }
-                    
+
                     Text("Notifications")
                         .font(.custom("Nunito-Regular", size: 24))
                         .fontWeight(.bold)
                         .foregroundColor(.black)
                         .padding(.leading, 10)
-                    
+
                     Spacer()
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 20)
-                
+
                 ScrollView {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Master toggle
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Enable Notifications")
-                                    .font(.custom("Nunito-Regular", size: 16))
-                                    .foregroundColor(.black)
-                                
-                                Text("Allow prayer time notifications")
-                                    .font(.custom("Nunito-Light", size: 14))
-                                    .foregroundColor(.black.opacity(0.6))
-                            }
-                            
-                            Spacer()
-                            
-                            Toggle("", isOn: $notificationsEnabled)
-                                .tint(Color(hex: "#fab555"))
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 20)
-                        
-                        if notificationsEnabled {
-                            // Notification timing
-                            VStack(alignment: .leading, spacing: 0) {
-                                Text("Notification Timing")
-                                    .font(.custom("Nunito-SemiBold", size: 18))
-                                    .foregroundColor(.black.opacity(0.8))
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 30)
-                                
-                                // Prayer start notifications
-                                HStack {
-                                    Text("Minutes before prayer starts")
+                        // MARK: - NOTIFICATIONS SECTION
+                        VStack(alignment: .leading, spacing: 0) {
+                            // Master toggle
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Enable Notifications")
                                         .font(.custom("Nunito-Regular", size: 16))
                                         .foregroundColor(.black)
-                                    
-                                    Spacer()
-                                    
-                                    HStack(spacing: 15) {
-                                        Button(action: {
-                                            if notificationOffset > 0 {
-                                                notificationOffset -= 1
-                                            }
-                                        }) {
-                                            Image(systemName: "minus.circle")
-                                                .foregroundColor(Color(hex: "#fab555"))
-                                                .font(.system(size: 24))
-                                        }
-                                        
-                                        Text("\(notificationOffset)")
-                                            .font(.custom("Nunito-SemiBold", size: 16))
-                                            .foregroundColor(.black)
-                                            .frame(minWidth: 30)
-                                        
-                                        Button(action: {
-                                            if notificationOffset < 60 {
-                                                notificationOffset += 1
-                                            }
-                                        }) {
-                                            Image(systemName: "plus.circle")
-                                                .foregroundColor(Color(hex: "#fab555"))
-                                                .font(.system(size: 24))
-                                        }
-                                    }
+
+                                    Text("Receive prayer time alerts")
+                                        .font(.custom("Nunito-Light", size: 14))
+                                        .foregroundColor(.black.opacity(0.6))
                                 }
-                                .padding(.horizontal, 20)
-                                .padding(.top, 10)
-                                
-                                // Prayer expiration notifications
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Minutes before prayer expires")
-                                            .font(.custom("Nunito-Regular", size: 16))
-                                            .foregroundColor(.black)
-                                        
-                                        Text("Reminds when prayer time is about to end")
-                                            .font(.custom("Nunito-Light", size: 12))
-                                            .foregroundColor(.black.opacity(0.6))
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    HStack(spacing: 15) {
-                                        Button(action: {
-                                            if expirationNotificationOffset > 0 {
-                                                expirationNotificationOffset -= 1
-                                            }
-                                        }) {
-                                            Image(systemName: "minus.circle")
-                                                .foregroundColor(Color(hex: "#fab555"))
-                                                .font(.system(size: 24))
-                                        }
-                                        
-                                        Text("\(expirationNotificationOffset)")
-                                            .font(.custom("Nunito-SemiBold", size: 16))
-                                            .foregroundColor(.black)
-                                            .frame(minWidth: 30)
-                                        
-                                        Button(action: {
-                                            if expirationNotificationOffset < 60 {
-                                                expirationNotificationOffset += 1
-                                            }
-                                        }) {
-                                            Image(systemName: "plus.circle")
-                                                .foregroundColor(Color(hex: "#fab555"))
-                                                .font(.system(size: 24))
-                                        }
-                                    }
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.top, 20)
-                                
-                                // Prayer-specific toggles
-                                Text("Prayer Notifications")
-                                    .font(.custom("Nunito-SemiBold", size: 18))
-                                    .foregroundColor(.black.opacity(0.8))
-                                    .padding(.horizontal, 20)
-                                    .padding(.top, 30)
-                                
-                                VStack(spacing: 1) {
-                                    // Always show basic prayers
-                                    NotificationToggleRow(title: "Fajr", isOn: $fajrNotification)
-                                    Divider().background(Color.gray.opacity(0.3))
-                                    
-                                    NotificationToggleRow(title: "Sunrise", isOn: $sunriseNotification)
-                                    Divider().background(Color.gray.opacity(0.3))
-                                    
-                                    NotificationToggleRow(title: "Dhuhr", isOn: $dhuhrNotification)
-                                    Divider().background(Color.gray.opacity(0.3))
-                                    
-                                    // Show Asr only if user has it enabled in prayer times
-                                    if prayerFetcher.showAsr {
-                                        NotificationToggleRow(title: "Asr", isOn: $asrNotification)
-                                        Divider().background(Color.gray.opacity(0.3))
-                                    }
-                                    
-                                    NotificationToggleRow(title: "Sunset", isOn: $sunsetNotification)
-                                    Divider().background(Color.gray.opacity(0.3))
-                                    
-                                    NotificationToggleRow(title: "Maghrib", isOn: $maghribNotification)
-                                    Divider().background(Color.gray.opacity(0.3))
-                                    
-                                    // Show Isha only if user has it enabled in prayer times
-                                    if prayerFetcher.showIsha {
-                                        NotificationToggleRow(title: "Isha", isOn: $ishaNotification)
-                                        Divider().background(Color.gray.opacity(0.3))
-                                    }
-                                    
-                                    // Midnight is always available
-                                    NotificationToggleRow(title: "Midnight", isOn: $midnightNotification)
-                                }
-                                .padding(.horizontal, 20)
-                                .padding(.top, 10)
+
+                                Spacer()
+
+                                Toggle("", isOn: Binding(
+                                    get: { viewModel.notificationsEnabled },
+                                    set: { _ in viewModel.toggleNotifications() }
+                                ))
+                                .tint(Color(hex: "#fab555"))
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 20)
+
+                            if viewModel.notificationsEnabled {
+                                // Per-prayer notification detail views
+                                prayerNotificationsSection
                             }
                         }
+
                     }
                 }
-                
+
                 Spacer()
             }
         }
         .navigationBarHidden(true)
         .gesture(
-            // Add swipe back gesture
             DragGesture()
                 .onEnded { gesture in
                     if gesture.translation.width > 100 && abs(gesture.translation.height) < 50 {
@@ -232,53 +105,88 @@ struct NotificationsView: View {
                     }
                 }
         )
-        .onChange(of: notificationsEnabled) { _, enabled in
-            if enabled {
-                requestNotificationPermission()
-            }
+        .onAppear {
+            // Link ViewModel to PrayerTimesFetcher for rescheduling
+            viewModel.prayerTimesFetcher = prayerFetcher
+            viewModel.checkNotificationPermission()
+            viewModel.updatePendingNotificationsCount()
         }
-        .alert("Notification Permission", isPresented: $showingPermissionAlert) {
+        .alert("Notification Permission", isPresented: $viewModel.showingPermissionAlert) {
             Button("Settings") {
                 if let settingsUrl = URL(string: UIApplication.openSettingsURLString) {
                     UIApplication.shared.open(settingsUrl)
                 }
             }
-            Button("Cancel", role: .cancel) {
-                notificationsEnabled = false
-            }
+            Button("Cancel", role: .cancel) { }
         } message: {
             Text("Please enable notifications in Settings to receive prayer time alerts.")
         }
+        // LIVE ACTIVITIES DISABLED
+        // .sheet(isPresented: $showingLiveActivityPreview) {
+        //     LiveActivityPreviewView()
+        // }
     }
-    
-    private func requestNotificationPermission() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
-            DispatchQueue.main.async {
-                if !granted {
-                    showingPermissionAlert = true
+
+    // MARK: - Prayer Notifications Section
+    private var prayerNotificationsSection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text("Prayer Notifications")
+                .font(.custom("Nunito-SemiBold", size: 18))
+                .foregroundColor(.black.opacity(0.8))
+                .padding(.horizontal, 20)
+                .padding(.top, 30)
+
+            Text("Tap each prayer to customize notification timing")
+                .font(.custom("Nunito-Light", size: 14))
+                .foregroundColor(.black.opacity(0.6))
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+
+            VStack(spacing: 0) {
+                PrayerDetailRowView(
+                    prayerName: "Fajr",
+                    viewModel: viewModel,
+                    isExpanded: $fajrExpanded
+                )
+                Divider().background(Color.gray.opacity(0.3))
+
+                PrayerDetailRowView(
+                    prayerName: "Dhuhr",
+                    viewModel: viewModel,
+                    isExpanded: $dhuhrExpanded
+                )
+                Divider().background(Color.gray.opacity(0.3))
+
+                if prayerFetcher.showAsr {
+                    PrayerDetailRowView(
+                        prayerName: "Asr",
+                        viewModel: viewModel,
+                        isExpanded: $asrExpanded
+                    )
+                    Divider().background(Color.gray.opacity(0.3))
+                }
+
+                PrayerDetailRowView(
+                    prayerName: "Maghrib",
+                    viewModel: viewModel,
+                    isExpanded: $maghribExpanded
+                )
+
+                if prayerFetcher.showIsha {
+                    Divider().background(Color.gray.opacity(0.3))
+
+                    PrayerDetailRowView(
+                        prayerName: "Isha",
+                        viewModel: viewModel,
+                        isExpanded: $ishaExpanded
+                    )
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 10)
         }
     }
-}
 
-struct NotificationToggleRow: View {
-    let title: String
-    @Binding var isOn: Bool
-    
-    var body: some View {
-        HStack {
-            Text(title)
-                .font(.custom("Nunito-Regular", size: 16))
-                .foregroundColor(.black)
-            
-            Spacer()
-            
-            Toggle("", isOn: $isOn)
-                .tint(Color(hex: "#fab555"))
-        }
-        .padding(.vertical, 16)
-    }
 }
 
 #Preview {

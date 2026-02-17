@@ -57,33 +57,34 @@ struct SettingsView: View {
                                     showChevron: true,
                                     action: viewModel.showCalculationView
                                 )
-                                
+
                                 Divider()
                                     .background(Color.gray.opacity(0.2))
 
-                                // COMMENTING OUT UNTIL WE LAUNCH CALENDAR AND NOTIFICATIONS INSHALLAH
-                                // Calendar Setting
-//                                SettingsRow(
-//                                    title: "Calendar Setting",
-//                                    subtitle: "Hijri and Gregorian options",
-//                                    showChevron: true,
-//                                    action: viewModel.showCalendarView
-//                                )
-//                                
-//                                Divider()
-//                                    .background(Color.gray.opacity(0.2))
-//                                
-//                                // Notifications
-//                                SettingsRow(
-//                                    title: "Notifications",
-//                                    subtitle: "Customize prayer time alerts",
-//                                    showChevron: true,
-//                                    action: viewModel.showNotificationsView
-//                                )
-//                                
-//                                Divider()
-//                                    .background(Color.gray.opacity(0.2))
-//                                
+                                // Notifications
+                                SettingsRow(
+                                    title: "Notifications",
+                                    subtitle: "Customize prayer time alerts",
+                                    showChevron: true,
+                                    action: viewModel.showNotificationsView
+                                )
+
+                                Divider()
+                                    .background(Color.gray.opacity(0.2))
+
+                                // Live Activities
+                                if #available(iOS 16.1, *) {
+                                    SettingsRow(
+                                        title: "Live Activities",
+                                        subtitle: "Lock screen prayer countdowns",
+                                        showChevron: true,
+                                        action: viewModel.showLiveActivitiesView
+                                    )
+
+                                    Divider()
+                                        .background(Color.gray.opacity(0.2))
+                                }
+
                                 // About
                                 SettingsRow(
                                     title: "About",
@@ -152,6 +153,11 @@ struct SettingsView: View {
         }
         .sheet(isPresented: $viewModel.showingNotificationsView) {
             NotificationsView(prayerFetcher: prayerFetcher)
+        }
+        .sheet(isPresented: $viewModel.showingLiveActivitiesView) {
+            if #available(iOS 16.1, *) {
+                LiveActivitiesSettingsView(prayerFetcher: prayerFetcher)
+            }
         }
         .sheet(isPresented: $viewModel.showingAboutView) {
             AboutView()
