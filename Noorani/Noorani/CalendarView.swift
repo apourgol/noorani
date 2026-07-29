@@ -6,12 +6,11 @@
 //
 
 import SwiftUI
-import MijickCalendarView
 
 // MARK: - Main Calendar View
 struct AzanCalendarView: View {
     @State private var selectedDate: Date? = Date()
-    @State private var selectedRange: MDateRange? = nil
+    @State private var displayedMonth: Date = Date()
     @State private var prayerTimes: [PrayerTime] = []
     @State private var hijriDate: String = ""
     @State private var isLoading: Bool = false
@@ -96,63 +95,110 @@ struct AzanCalendarView: View {
 
 // MARK: - View Components
 private extension AzanCalendarView {
-    func createNavigationHeader() -> some View {
+    func createCalendarView() -> some View {
         VStack(spacing: 12) {
-            HStack {
-                // Previous Month Button
-                Button(action: {
-                    // Add previous month logic here
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: 44, height: 44)
-                }
-                
-                Spacer()
-                
+            createMonthHeader()
+            createWeekdayHeader()
+            createDayGrid()
+        }
+        .padding(.top, 8)
+    }
+
+    func createMonthHeader() -> some View {
+        HStack {
+            // Previous Month Button
+            Button(action: { changeMonth(by: -1) }) {
+                Image(systemName: "chevron.left")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
+            }
+
+            Spacer()
+
+            VStack(spacing: 2) {
                 // Month and Year Display
                 Text(getMonthYearString())
-                    .font(.title2)
+                    .font(.title3)
                     .fontWeight(.semibold)
-                
-                Spacer()
-                
-                // Next Month Button
-                Button(action: {
-                    // Add next month logic here
-                }) {
-                    Image(systemName: "chevron.right")
-                        .font(.title2)
-                        .foregroundColor(.blue)
-                        .frame(width: 44, height: 44)
+
+                // Quick jump back to today when browsing another month
+                if !calendar.isDate(displayedMonth, equalTo: Date(), toGranularity: .month) {
+                    Button(action: {
+                        selectedDate = Date()
+                        displayedMonth = Date()
+                    }) {
+                        Text("Today")
+                            .font(.caption)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Color(hex: "#b8791f"))
+                    }
                 }
             }
-            
-            // Today Button
-            Button(action: {
-                selectedDate = Date()
-            }) {
-                Text("Today")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
-                    .background(Color.blue)
-                    .cornerRadius(16)
+
+            Spacer()
+
+            // Next Month Button
+            Button(action: { changeMonth(by: 1) }) {
+                Image(systemName: "chevron.right")
+                    .font(.title3.weight(.semibold))
+                    .foregroundColor(.primary)
+                    .frame(width: 44, height: 44)
             }
         }
-        .padding(.horizontal)
     }
-    
-    func createCalendarView() -> some View {
-        MCalendarView(
-            selectedDate: $selectedDate,
-            selectedRange: $selectedRange,
-            configBuilder: configureCalendar
-        )
-        .frame(maxHeight: .infinity)
+
+    func createWeekdayHeader() -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(calendar.veryShortWeekdaySymbols.enumerated()), id: \.offset) { _, symbol in
+                Text(symbol)
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity)
+            }
+        }
+    }
+
+    func createDayGrid() -> some View {
+        LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 0), count: 7), spacing: 6) {
+            ForEach(Array(makeDayGrid().enumerated()), id: \.offset) { _, day in
+                if let day {
+                    createDayCell(for: day)
+                } else {
+                    Color.clear
+                        .frame(height: 38)
+                }
+            }
+        }
+    }
+
+    func createDayCell(for day: Date) -> some View {
+        let isSelected = selectedDate.map { calendar.isDate($0, inSameDayAs: day) } ?? false
+        let isToday = calendar.isDateInToday(day)
+
+        return Button(action: { selectedDate = day }) {
+            Text("\(calendar.component(.day, from: day))")
+                .font(.subheadline)
+                .fontWeight(isSelected || isToday ? .bold : .regular)
+                .foregroundColor(isSelected ? .white : .primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: 38)
+                .background(
+                    ZStack {
+                        if isSelected {
+                            Circle()
+                                .fill(Color(hex: "#fab555"))
+                                .frame(width: 36, height: 36)
+                        } else if isToday {
+                            Circle()
+                                .stroke(Color(hex: "#fab555"), lineWidth: 1.5)
+                                .frame(width: 36, height: 36)
+                        }
+                    }
+                )
+        }
+        .buttonStyle(.plain)
     }
     
     func createAzanTimesSection(for date: Date) -> some View {
@@ -269,22 +315,40 @@ private extension AzanCalendarView {
     }
 }
 
-// MARK: - Calendar Configuration
-private extension AzanCalendarView {
-    func configureCalendar(_ config: CalendarConfig) -> CalendarConfig {
-        config
-            .firstWeekday(.sunday) // Start week on Sunday instead of Monday
-            .monthsTopPadding(8)
-            .monthsBottomPadding(16)
-    }
-}
-
 // MARK: - Helper Functions
 private extension AzanCalendarView {
+    /// Gregorian calendar with Sunday as the first weekday (matches the app's week layout)
+    var calendar: Calendar {
+        var cal = Calendar(identifier: .gregorian)
+        cal.firstWeekday = 1
+        return cal
+    }
+
+    func changeMonth(by offset: Int) {
+        if let newMonth = calendar.date(byAdding: .month, value: offset, to: displayedMonth) {
+            displayedMonth = newMonth
+        }
+    }
+
+    /// Days of the displayed month, padded with nil so the first row aligns to the weekday columns
+    func makeDayGrid() -> [Date?] {
+        guard let monthStart = calendar.dateInterval(of: .month, for: displayedMonth)?.start,
+              let dayCount = calendar.range(of: .day, in: .month, for: displayedMonth)?.count else {
+            return []
+        }
+
+        let leadingBlanks = (calendar.component(.weekday, from: monthStart) - calendar.firstWeekday + 7) % 7
+        var days: [Date?] = Array(repeating: nil, count: leadingBlanks)
+        for offset in 0..<dayCount {
+            days.append(calendar.date(byAdding: .day, value: offset, to: monthStart))
+        }
+        return days
+    }
+
     func getMonthYearString() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "MMMM yyyy"
-        return formatter.string(from: selectedDate ?? Date())
+        return formatter.string(from: displayedMonth)
     }
     
     func getDateString(from date: Date) -> String {
