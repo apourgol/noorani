@@ -934,17 +934,48 @@ class PrayerTimesFetcher: ObservableObject {
         }
     }
 
+    /// The previous night's Midnight (the Isha deadline). The API stamps each
+    /// day's Midnight on the *next* calendar date — July 28's timetable has
+    /// Midnight at 12:25 AM on July 29 — so between 12:00 AM and Islamic
+    /// midnight the pending deadline lives in yesterday's timetable, which is
+    /// no longer loaded. Read it back from the day cache.
+    private func lastNightMidnight(now: Date) -> Date? {
+        guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: now) else { return nil }
+        let dateKey = apiDateFormatter.string(from: yesterday)
+
+        if let data = UserDefaults.standard.data(forKey: "cachedPrayerTimes_\(dateKey)"),
+           let cache = try? JSONDecoder().decode(CachedPrayerTimes.self, from: data),
+           abs(cache.latitude - currentLat) < 0.05, abs(cache.longitude - currentLng) < 0.05,
+           cache.methodId == selectedMethodId,
+           let midnight = cache.toPrayerTimes()["Midnight"] {
+            return midnight
+        }
+
+        // No usable cache for yesterday (fresh install, location or method just
+        // changed): midnight drifts ~1 min/day, so today's minus one day is a
+        // close approximation.
+        guard let todayMidnight = prayerTimes["Midnight"] else { return nil }
+        return Calendar.current.date(byAdding: .day, value: -1, to: todayMidnight)
+    }
+
     func updateNextPrayer() {
         let now = Date()
 
-        // Get only visible prayers that are upcoming today, sorted by time
-        let upcomingPrayers = prayerTimes
-            .filter { prayerName, prayerTime in
-                let isUpcoming = prayerTime > now
-                let visible = isVisible(prayer: prayerName)
-                return isUpcoming && visible
-            }
-            .sorted(by: { $0.value < $1.value })
+        // Get only visible prayers that are upcoming today
+        var candidatePrayers = prayerTimes.filter { prayerName, prayerTime in
+            let isUpcoming = prayerTime > now
+            let visible = isVisible(prayer: prayerName)
+            return isUpcoming && visible
+        }
+
+        // Today's own Midnight lands after 12:00 AM *tomorrow*, so right after
+        // the date rolls over the still-pending deadline is yesterday's
+        // Midnight. Keep counting down to it instead of jumping ahead to Fajr.
+        if let lastNight = lastNightMidnight(now: now), lastNight > now {
+            candidatePrayers["Midnight"] = lastNight
+        }
+
+        let upcomingPrayers = candidatePrayers.sorted(by: { $0.value < $1.value })
 
         if let next = upcomingPrayers.first {
             // Found upcoming visible prayer today
