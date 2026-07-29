@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		AD0C03C52EBEEA96000BF455 /* MijickCalendarView in Frameworks */ = {isa = PBXBuildFile; productRef = AD0C03C42EBEEA96000BF455 /* MijickCalendarView */; };
 		B54D83D72F0D62240035A2F3 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5F4B0122ECAEB61001A67D5 /* WidgetKit.framework */; };
 		B54D83D82F0D62240035A2F3 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B5F4B0142ECAEB61001A67D5 /* SwiftUI.framework */; };
 		B54D83F82F0D69410035A2F3 /* NooraniWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B54D83D62F0D62240035A2F3 /* NooraniWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -147,7 +146,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				AD0C03C52EBEEA96000BF455 /* MijickCalendarView in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -235,9 +233,6 @@
 				ADCE47BC2E77A2A8004F5972 /* Noorani */,
 			);
 			name = Noorani;
-			packageProductDependencies = (
-				AD0C03C42EBEEA96000BF455 /* MijickCalendarView */,
-			);
 			productName = Noorani;
 			productReference = ADCE47BA2E77A2A8004F5972 /* Noorani.app */;
 			productType = "com.apple.product-type.application";
@@ -345,9 +340,6 @@
 			);
 			mainGroup = ADCE47B12E77A2A8004F5972;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = ADCE47BB2E77A2A8004F5972 /* Products */;
 			projectDirPath = "";
@@ -897,24 +889,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Mijick/CalendarView";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.1.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		AD0C03C42EBEEA96000BF455 /* MijickCalendarView */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = AD0C03C32EBEEA96000BF455 /* XCRemoteSwiftPackageReference "CalendarView" */;
-			productName = MijickCalendarView;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = ADCE47B22E77A2A8004F5972 /* Project object */;
 }
